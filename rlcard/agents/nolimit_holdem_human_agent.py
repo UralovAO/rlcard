@@ -58,17 +58,17 @@ def _print_state(state, action_record):
     for pair in _action_list:
         print('>> Player', pair[0], 'chooses', pair[1])
 
-    print('\n=============== Community Card ===============')
-    print_card(state['public_cards'])
-
-    print('=============  Player',state["current_player"],'- Hand   =============')
-    print_card(state['hand'])
+    # print('\n=============== Community Card ===============')
+    # print_card(state['public_cards'])
+    #
+    # print('=============  Player',state["current_player"],'- Hand   =============')
+    # print_card(state['hand'])
 
     print('===============     Chips      ===============')
     print('In Pot:',state["pot"])
     print('Remaining:',state["stakes"])
 
-    print('\n=========== Actions You Can Choose ===========')
+    print('\n=========== Actions Player',state["current_player"],'Can Choose ===========')
     print(', '.join([str(index) + ': ' + str(action) for index, action in enumerate(state['legal_actions'])]))
     print('')
-    print(state)
+    # print(state)

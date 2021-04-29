@@ -185,6 +185,8 @@ class Env(object):
             raise ValueError('Run in single agent not allowed.')
 
         trajectories = [[] for _ in range(self.player_num)]
+
+        self.game.dealer_id = int(input(f'>> Input dealer_id:'))
         state, player_id = self.reset()
 
         # Loop to play the game
@@ -195,12 +197,11 @@ class Env(object):
                 action, _ = self.agents[player_id].eval_step(state)
             else:
                 action = self.agents[player_id].step(state)
-
             # Environment steps
             next_state, next_player_id = self.step(action, self.agents[player_id].use_raw)
             # Save action
             trajectories[player_id].append(action)
-
+            # print('next_state = ', next_state)
             # Set the state and player
             state = next_state
             player_id = next_player_id

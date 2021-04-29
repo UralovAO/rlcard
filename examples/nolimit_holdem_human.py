@@ -7,20 +7,40 @@ from rlcard import models
 from rlcard.agents import NolimitholdemHumanAgent as HumanAgent
 from rlcard.utils import print_card
 
+
+import torch
+from rlcard.agents.nfsp_agent_pytorch import NFSPAgent
+
 # Make environment
 # Set 'record_action' to True because we need it to print results
-env = rlcard.make('no-limit-holdem', config={'record_action': True})
+env = rlcard.make('no-limit-holdem',
+                  config={'record_action': True, 'game_player_num': 3, 'chips_for_each': [100]*3}
+                  )
 
-human_agent = HumanAgent(env.action_num)
-human_agent2 = HumanAgent(env.action_num)
+human_agent0 = HumanAgent(env.action_num)
+human_agent1 = HumanAgent(env.action_num)
+# human_agent2 = HumanAgent(env.action_num)
+# human_agent3 = HumanAgent(env.action_num)
+
+nfsp_agent = NFSPAgent(scope='nfsp' + str(2),
+                      action_num=env.action_num,
+                      state_shape=env.state_shape,
+                      hidden_layers_sizes=[512,1024,2048,1024,512],
+                      q_mlp_layers=[512,1024,2048,1024,512],
+                      device=torch.device('cpu'))
+
+checkpoint = torch.load(r'D:\Development\Jupiter\ rlcard\models\pretrained\nolimit_holdem_nfsp_pytorch\new\model.pth')
+nfsp_agent.load(checkpoint)
+
 # random_agent = RandomAgent(action_num=env.action_num)
 
-env.set_agents([human_agent, human_agent2])
+env.set_agents([nfsp_agent, human_agent0, human_agent1])
 
+# env.game.dealer_id = 1
 
 while (True):
     print(">> Start a new game")
-
+    print(type(env))
     trajectories, payoffs = env.run(is_training=False)
     # If the human does not take the final action, we need to
     # print other players action
@@ -48,5 +68,5 @@ while (True):
     else:
         print('You lose {} chips!'.format(-payoffs[0]))
     print('')
-
+    print('all payoffs = ', payoffs)
     input("Press any key to continue...")

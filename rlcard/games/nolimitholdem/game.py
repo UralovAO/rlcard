@@ -10,6 +10,8 @@ from rlcard.games.nolimitholdem import Player
 from rlcard.games.nolimitholdem import Judger
 from rlcard.games.nolimitholdem import Round, Action
 
+from rlcard.core import Card
+from rlcard.utils.utils import take_out_cards
 
 class Stage(Enum):
 
@@ -48,6 +50,14 @@ class NolimitholdemGame(Game):
         self.init_chips = game_config['chips_for_each']
         self.dealer_id = game_config['dealer_id']
 
+    def input_card(self, message='Input suit and rank of card:'):
+        pass
+        # You choose action(integer)
+        suit_rank_card = str(input(f'>> {message}'))
+        suit_rank_card = suit_rank_card.upper()
+        card = Card(suit_rank_card[0], suit_rank_card[1])
+        return card
+
     def init_game(self):
         ''' Initialilze the game of Limit Texas Hold'em
 
@@ -72,8 +82,35 @@ class NolimitholdemGame(Game):
         self.judger = Judger(self.np_random)
 
         # Deal cards to each  player to prepare for the first round
+
+        # index_player_card = 0
+        # card1 = Card('S', 'A')
+        # card2 = Card('C', 'A')
+        # print('!!! len(self.dealer.deck) = ', len(self.dealer.deck))
+        # take_out_cards(self.dealer.deck, [card1, card2])
+        # print('!!! len(self.dealer.deck) = ', len(self.dealer.deck))
+        # self.players[index_player_card].hand = [card1, card2]
+        #
+        # index_player_card = 1
+        # card1 = Card('H', 'A')
+        # card2 = Card('C', 'A')
+        # print('!!! len(self.dealer.deck) = ', len(self.dealer.deck))
+        # take_out_cards(self.dealer.deck, [card1, card2])
+        # print('!!! len(self.dealer.deck) = ', len(self.dealer.deck))
+        # self.players[index_player_card].hand = [card1, card2]
+
+
         for i in range(2 * self.num_players):
-            self.players[i % self.num_players].hand.append(self.dealer.deal_card())
+            index_player = i % self.num_players
+            if index_player in [0]:
+                card = self.input_card(f'HAND CARD for player {index_player}. Input suit and rank of card:')
+                self.players[index_player].hand.append(card)
+                take_out_cards(self.dealer.deck, [card])
+            else:
+                self.players[index_player].hand.append(self.dealer.deal_card())
+
+        # for card in self.dealer.deck:
+        #     print('!!!', card.get_index())
 
         # Initilize public cards
         self.public_cards = []
@@ -161,20 +198,37 @@ class NolimitholdemGame(Game):
             # For the first round, we deal 3 cards
             if self.round_counter == 0:
                 self.stage = Stage.FLOP
-                self.public_cards.append(self.dealer.deal_card())
-                self.public_cards.append(self.dealer.deal_card())
-                self.public_cards.append(self.dealer.deal_card())
+                card1 = self.input_card('FLOP. Input suit and rank of card:')
+                card2 = self.input_card('FLOP. Input suit and rank of card:')
+                card3 = self.input_card('FLOP. Input suit and rank of card:')
+                take_out_cards(self.dealer.deck, [card1, card2, card3])
+                self.public_cards.append(card1)
+                self.public_cards.append(card2)
+                self.public_cards.append(card3)
+
+                # self.public_cards.append(self.dealer.deal_card())
+                # self.public_cards.append(self.dealer.deal_card())
+                # self.public_cards.append(self.dealer.deal_card())
                 if len(self.players) == np.sum(players_in_bypass):
                     self.round_counter += 1
             # For the following rounds, we deal only 1 card
             if self.round_counter == 1:
                 self.stage = Stage.TURN
-                self.public_cards.append(self.dealer.deal_card())
+
+                card = self.input_card('TURN. Input suit and rank of card:')
+                take_out_cards(self.dealer.deck, [card])
+                self.public_cards.append(card)
+
+                # self.public_cards.append(self.dealer.deal_card())
                 if len(self.players) == np.sum(players_in_bypass):
                     self.round_counter += 1
             if self.round_counter == 2:
                 self.stage = Stage.RIVER
-                self.public_cards.append(self.dealer.deal_card())
+
+                card = self.input_card('RIVER. Input suit and rank of card:')
+                take_out_cards(self.dealer.deck, [card])
+                self.public_cards.append(card)
+                # self.public_cards.append(self.dealer.deal_card())
                 if len(self.players) == np.sum(players_in_bypass):
                     self.round_counter += 1
 

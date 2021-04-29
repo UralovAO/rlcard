@@ -22,7 +22,7 @@ eval_env = rlcard.make('no-limit-holdem', config={'seed': 0, 'game_player_num': 
 
 evaluate_num = 1000
 batch_size=256
-episode_num = 10000
+episode_num = 100000
 
 # The intial memory size
 memory_init_size = 1000
