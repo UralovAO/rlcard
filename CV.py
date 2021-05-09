@@ -13,8 +13,15 @@ time.sleep(5)
 # gw.getActiveWindow().title
 win = pygetwindow.getActiveWindow()
 print('win.title= ', win.title)
-win.moveTo(0, 0)
-win.size = (960, 540)
+win_width = int(960*1.6)
+win_hight = int(540*1.6)
+win_left = 1920-win_width+30
+win_top = 0 #1080-win_hight
+print('win_left = ', win_left)
+print('win_top = ', win_top)
+win.moveTo(win_left, win_top)
+# win.size = (960, 540)
+win.size = (win_width, win_hight)
 
 print('__file__ = ', __file__)
 HERE = path.abspath(path.dirname(__file__))
@@ -117,15 +124,52 @@ def get_initial_data():
     #     screen = pyautogui.screenshot(path.join(screenshots_path, 'screenshot.png'))
         # assert 1==3
 
+def get_digits():
+    # region = (970, 220, 450, 70) - area for searching digits if player with id 3
+    digits = []
+    # start_time = datetime.now()
+    zeros = pyautogui.locateAllOnScreen(path.join(HERE, 'pictures/digits', '0.png'),
+                                        region=(970, 220, 450, 70),
+                                        # grayscale=True,
+                                        confidence=0.9
+                                        )
+
+    digits.append([0 for x in range(len(list(zeros)))])
+
+    ones = pyautogui.locateAllOnScreen(path.join(HERE, 'pictures/digits', '1.png'),
+                                        region=(970, 220, 450, 70),
+                                        # grayscale=True,
+                                        confidence=0.85
+                                        )
+
+    digits.append([1 for x in range(len(list(ones)))])
+
+    if len(digits[0]) > 0 and len(digits[1]) > 0:
+        print('digits = ', digits)
+
+    # finish_time = datetime.now()
+    # timedelta = finish_time - start_time
+    # print('zeros with coordinates =', zeros, 'is found for', timedelta.microseconds, 'microseconds')
+    # screen = pyautogui.screenshot(path.join(screenshots_path, 'screenshot.png'))
+    # n = 0
+    # for s in zeros:
+    #     print('s=', s)
+    #     n = n + 1
+    #
+    # if n > 0:
+    #     sys.exit('ok')
+
 
 while True:
     time.sleep(1)
-    get_initial_data()
+    get_digits()
+    # get_initial_data()
     # if is_round_started():
     #     print('ROUND IS STARTED!')
+    # screen = pyautogui.screenshot(path.join(screenshots_path, 'screenshot.png'),
+    #                               region=(970, 220, 450, 70))
 
-
-        # break
+    # break
 
 
 
