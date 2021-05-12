@@ -1,18 +1,20 @@
 import sys
-
+from os import path
 import numpy as np
 import cv2
+HERE = path.abspath(path.dirname(__file__))
 
 def preproccess_image(im):
     gray = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
     blur = cv2.GaussianBlur(gray, (1, 1), 0)
-    threshold = 100
+    # blur = gray
+    threshold = 130
     _, thresh = cv2.threshold(blur, threshold, 255, cv2.THRESH_BINARY)
     return thresh
 
 if __name__ == "__main__":
 
-    im = cv2.imread(r'D:\Development\PyCharm\simple-ocr-opencv\simpleocr\data\train.png')
+    im = cv2.imread(path.join(HERE, 'data', 'train', 'train.png'))
     # im3 = im.copy()
 
     preproccessed_image = preproccess_image(im)
@@ -24,7 +26,7 @@ if __name__ == "__main__":
     for cnt in contours:
         [x,y,w,h] = cv2.boundingRect(cnt)
 
-        if  (h>14 and h<18 and w<14) or (h>0 and h<5 and w<5):
+        if  (h>14 and h<18 and w<14) or (h>1 and h<4 and w<4):
             cv2.rectangle(im,(x,y),(x+w,y+h),(0,0,255),2)
             roi = preproccessed_image[y:y+h,x:x+w]
             roismall = cv2.resize(roi,(10,10))
@@ -40,7 +42,7 @@ if __name__ == "__main__":
 
     responses = np.array(responses,np.float32)
     responses = responses.reshape((responses.size,1))
-    print ("training complete")
+    print ("Making training data is complete")
 
-    np.savetxt('generalsamples.data',samples)
-    np.savetxt('generalresponses.data',responses)
+    np.savetxt(path.join(HERE, 'data', 'train', 'generalsamples.data'),samples)
+    np.savetxt(path.join(HERE, 'data', 'train', 'generalresponses.data'),responses)

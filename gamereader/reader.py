@@ -5,6 +5,9 @@ from datetime import datetime
 import pygetwindow
 import sys
 import numpy as np
+# import ocr
+from ocr import ocr_digits
+import cv2
 
 HERE = path.abspath(path.dirname(__file__))
 # screenshots_path = path.join(HERE, 'screenshots')
@@ -61,18 +64,18 @@ class Round(object):
         # TODO specify region for searching
         regions = {0: (1006 - DELTA, 655 - DELTA, 50 + 2 * DELTA, 41 + 2 * DELTA),
                    1: (709 - DELTA, 495 - DELTA, 50 + 2 * DELTA, 41 + 2 * DELTA),
-                   2: (553 - DELTA, 363 - DELTA, 50 + 2 * DELTA, 41 + 2 * DELTA),
+                   2: (732 - DELTA, 363 - DELTA, 50 + 2 * DELTA, 41 + 2 * DELTA),
                    3: (1214 - DELTA, 270 - DELTA, 50 + 2 * DELTA, 41 + 2 * DELTA),
                    4: (1578 - DELTA, 355 - DELTA, 50 + 2 * DELTA, 41 + 2 * DELTA),
                    5: (1504 - DELTA, 601 - DELTA, 50 + 2 * DELTA, 41 + 2 * DELTA)}
-        for player in regions.keys():
+        for player_id in regions.keys():
             button = pyautogui.locateOnScreen(path.join(HERE, 'data', 'signs', 'button.png'),
                                               confidence=0.90,
-                                              region=regions[player],
+                                              region=regions[player_id],
                                               grayscale=True)
             # print('Button with coordinates =', button, 'is found')
             if button is not None:
-                return player
+                return player_id
 
         if button is None:
             sys.exit('Application did not find buttion position!')
@@ -119,15 +122,15 @@ class Round(object):
                    4:(1664-DELTA, 290-DELTA, 131+2*DELTA, 21+2*DELTA),
                    5:(1710-DELTA, 611-DELTA, 131+2*DELTA, 21+2*DELTA)}
 
-        for player in regions.keys():
+        for player_id in regions.keys():
             sitting_out = pyautogui.locateOnScreen(path.join(HERE, 'data', 'signs', 'sitting_out.png'),
                                                    confidence=0.90,
-                                                   region=regions[player],
+                                                   region=regions[player_id],
                                                    grayscale=True)
             # print('Sitting_out with coordinates =', sitting_out, 'is found')
 
             if sitting_out is not None:
-                sitting_out_players.append(player)
+                sitting_out_players.append(player_id)
 
         # (left=1710, top=611, width=131, height=21) id = 5
         # (left=1664, top=290, width=131, height=21) id = 4
@@ -159,46 +162,47 @@ class Round(object):
 
         return sitting_out_players
 
+    def get_bets(self):
+        DELTA = 0
+        bets = {}
+        regions = {1: (805 - DELTA, 568 - DELTA, 270 + 2 * DELTA, 23 + 2 * DELTA),
+                   2: (825 - DELTA, 349 - DELTA, 270 + 2 * DELTA, 23 + 2 * DELTA),
+                   3: (1240 - DELTA, 250 - DELTA, 270 + 2 * DELTA, 23 + 2 * DELTA),
+                   4: (1230 - DELTA, 313 - DELTA, 270 + 2 * DELTA, 23 + 2 * DELTA),
+                   5: (1270 - DELTA, 568 - DELTA, 270 + 2 * DELTA, 23 + 2 * DELTA)}
 
-if __name__ == '__main__':
-    time.sleep(5)
+        for player_id in regions.keys():
+            bet_screen_PIL = pyautogui.screenshot(
+                path.join(HERE, 'data', 'screenshots', f'bet_screen_{player_id}.png'),
+                region=regions[player_id]
+            )
+            # convert PIL image to opencv format
+            bet_screen_CV = np.array(bet_screen_PIL)
+            # cv2.imwrite(f'bet_screen_CV{player_id}.png', bet_screen_CV)
+            bets[player_id] = ocr_digits.get_number(bet_screen_CV, player_id)
 
-    game = Game()
-    game.set_work_position()
-
-    round = Round()
-
-
-    # if raise_to is None and 1==2:
-
-    while True:
-        time.sleep(1)
-
-        if round.is_started():
-            print('ROUND IS STARTED!')
-            print('button position = ', round.get_button_position())
-            print('sitting out players = ',round.get_sitting_out_players())
-
+        return bets
+            # print(ocr.get_number(screen_digits_3_CV))
 
         # screen = pyautogui.screenshot(path.join(screenshots_path, 'screenshot.png'),
         #                               region = (1240, 250, 160, 23))
-        screen_digits_1_PIL = pyautogui.screenshot(path.join(HERE, 'data', 'screenshots', 'screen_digits_1_PIL.png'),
-                                                   region=(805, 568, 270, 23)
-                                                   )
-
-        screen_digits_2_PIL = pyautogui.screenshot(path.join(HERE, 'data', 'screenshots', 'screen_digits_5_PIL.png'),
-                                                   region=(825, 349, 270, 23)
-                                                   )
-        screen_digits_3_PIL = pyautogui.screenshot(path.join(HERE, 'data', 'screenshots', 'screen_digits_5_PIL.png'),
-                                                   region=(1240, 250, 270, 23)
-                                                   )
-
-        screen_digits_4_PIL = pyautogui.screenshot(path.join(HERE, 'data', 'screenshots', 'screen_digits_5_PIL.png'),
-                                                   region=(1230, 313, 270, 23)
-                                                   )
-        screen_digits_5_PIL = pyautogui.screenshot(path.join(HERE, 'data', 'screenshots', 'screen_digits_5_PIL.png'),
-                                                   region=(1270, 568, 270, 23)
-                                                   )
+        # screen_digits_1_PIL = pyautogui.screenshot(path.join(HERE, 'data', 'screenshots', 'screen_digits_1_PIL.png'),
+        #                                            region=(805, 568, 270, 23)
+        #                                            )
+        #
+        # screen_digits_2_PIL = pyautogui.screenshot(path.join(HERE, 'data', 'screenshots', 'screen_digits_5_PIL.png'),
+        #                                            region=(825, 349, 270, 23)
+        #                                            )
+        # screen_digits_3_PIL = pyautogui.screenshot(path.join(HERE, 'data', 'screenshots', 'screen_digits_5_PIL.png'),
+        #                                            region=(1240, 250, 270, 23)
+        #                                            )
+        #
+        # screen_digits_4_PIL = pyautogui.screenshot(path.join(HERE, 'data', 'screenshots', 'screen_digits_5_PIL.png'),
+        #                                            region=(1230, 313, 270, 23)
+        #                                            )
+        # screen_digits_5_PIL = pyautogui.screenshot(path.join(HERE, 'data', 'screenshots', 'screen_digits_5_PIL.png'),
+        #                                            region=(1270, 568, 270, 23)
+        #                                            )
 
         # break
 
@@ -209,6 +213,25 @@ if __name__ == '__main__':
         # print(ocr.get_number(screen_digits_3_CV))
 
 
+if __name__ == '__main__':
+    time.sleep(3)
+
+    game = Game()
+    game.set_work_position()
+
+    round = Round()
+
+    while True:
+        time.sleep(1)
+
+        if round.is_started():
+            print('ROUND IS STARTED!')
+            screen = pyautogui.screenshot(path.join(HERE, 'data', 'screenshots', 'screenshot.png'))
+            print('button position = ', round.get_button_position())
+            # print('sitting out players = ',round.get_sitting_out_players())
+            print('bets = ', round.get_bets())
+
+            break
         # break
         # get_digits()
         # get_initial_data()

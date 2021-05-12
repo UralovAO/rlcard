@@ -6,13 +6,13 @@ from .make_train_data import preproccess_image
 HERE = path.abspath(path.dirname(__file__))
 
 # def get_number(image_path = 'data/2.png'):
-def get_number(im):
-
+def get_number(im, player_id=0):
+    # print('player_id=',player_id)
     model = cv2.ml.KNearest_load(path.join(HERE, 'model','model.xml'))
 
     # im = cv2.imread(image_path)
     preproccessed_image = preproccess_image(im)
-
+    # cv2.imwrite(f'preproccessed_image{player_id}.png', preproccessed_image)
     # cv2.imshow('out',preproccessed_image)
     # cv2.waitKey(0)
     # gray = cv2.cvtColor(im,cv2.COLOR_BGR2GRAY)
@@ -27,7 +27,7 @@ def get_number(im):
     for cnt in contours:
         if cv2.contourArea(cnt)>0:
             [x,y,w,h] = cv2.boundingRect(cnt)
-            if  (h>14 and h<18 and w<14) or (h>0 and h<5 and w<5):
+            if  (h>14 and h<18 and w<14) or (h>1 and h<4 and w<4):
                 cv2.rectangle(im,(x,y),(x+w,y+h),(0,255,0),2)
                 roi = preproccessed_image[y:y+h,x:x+w]
                 roismall = cv2.resize(roi,(10,10))
@@ -42,9 +42,16 @@ def get_number(im):
     # print('digits = ', digits)
     result_number = [x[1] for x in digits]
     result_number = "".join(result_number)
-    print('result_number = ', result_number)
-    result_number = float(result_number)
+    # print('result_number = ', result_number)
+    if result_number != '':
+        result_number = float(result_number)
+    else:
+        result_number = None
 
+    # cv2.imwrite(f'im{player_id}.png', im)
+
+    # cv2.imshow('im',im)
+    # cv2.waitKey(0)
 
     return result_number
 

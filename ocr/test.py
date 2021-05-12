@@ -14,8 +14,13 @@ def get_number(image_path):
     # cv2.waitKey(0)
     gray = cv2.cvtColor(im,cv2.COLOR_BGR2GRAY)
     blur = cv2.GaussianBlur(gray,(1,1),0)
-    threshold = 100
+    # blur = gray
+    threshold = 140
     _, preproccessed_image = cv2.threshold(blur, threshold, 255, cv2.THRESH_BINARY)
+
+    cv2.imshow('out',preproccessed_image)
+    cv2.waitKey(0)
+
     contours,hierarchy = cv2.findContours(preproccessed_image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
     out = np.zeros(im.shape, np.uint8)
@@ -46,10 +51,11 @@ def get_number(image_path):
 
 
     cv2.imshow('im',im)
+    # cv2.imwrite('data/im.png', im)
     cv2.imshow('out',out)
     cv2.waitKey(0)
 
     return result_number
 
 # get_number(r'D:\Development\PyCharm\rlcard\screenshots/screen_digits_3_PIL.png')
-get_number('data/2.png')
+get_number(r'D:\Development\PyCharm\rlcard\gamereader/bet_screen_CV4.png')
