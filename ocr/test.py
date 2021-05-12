@@ -1,24 +1,21 @@
 import cv2
 import numpy as np
-from os import path
-from .make_train_data import preproccess_image
-
-HERE = path.abspath(path.dirname(__file__))
+from make_train_data import preproccess_image
 
 # def get_number(image_path = 'data/2.png'):
-def get_number(im):
+def get_number(image_path):
 
-    model = cv2.ml.KNearest_load(path.join(HERE, 'model','model.xml'))
+    model = cv2.ml.KNearest_load("model/model.xml")
 
-    # im = cv2.imread(image_path)
-    preproccessed_image = preproccess_image(im)
-
+    im = cv2.imread(image_path)
+    # preproccessed_image = preproccess_image(im)
+    #
     # cv2.imshow('out',preproccessed_image)
     # cv2.waitKey(0)
-    # gray = cv2.cvtColor(im,cv2.COLOR_BGR2GRAY)
-    # blur = cv2.GaussianBlur(gray,(3,3),0)
-    # threshold = 100
-    # _, thresh = cv2.threshold(blur, threshold, 255, cv2.THRESH_BINARY)
+    gray = cv2.cvtColor(im,cv2.COLOR_BGR2GRAY)
+    blur = cv2.GaussianBlur(gray,(1,1),0)
+    threshold = 100
+    _, preproccessed_image = cv2.threshold(blur, threshold, 255, cv2.THRESH_BINARY)
     contours,hierarchy = cv2.findContours(preproccessed_image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
     out = np.zeros(im.shape, np.uint8)
@@ -28,6 +25,8 @@ def get_number(im):
         if cv2.contourArea(cnt)>0:
             [x,y,w,h] = cv2.boundingRect(cnt)
             if  (h>14 and h<18 and w<14) or (h>0 and h<5 and w<5):
+            # if (h > 14 and h < 18 and w < 14) or (h > 0 and h < 5 and w < 5):
+            # if 1==1:
                 cv2.rectangle(im,(x,y),(x+w,y+h),(0,255,0),2)
                 roi = preproccessed_image[y:y+h,x:x+w]
                 roismall = cv2.resize(roi,(10,10))
@@ -46,11 +45,11 @@ def get_number(im):
     result_number = float(result_number)
 
 
+    cv2.imshow('im',im)
+    cv2.imshow('out',out)
+    cv2.waitKey(0)
+
     return result_number
 
-
-    # cv2.imshow('im',im)
-    # cv2.imshow('out',out)
-    # cv2.waitKey(0)
-
-# get_number()
+# get_number(r'D:\Development\PyCharm\rlcard\screenshots/screen_digits_3_PIL.png')
+get_number('data/2.png')
