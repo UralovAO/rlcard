@@ -57,12 +57,28 @@ class Round(object):
             return False
 
     def get_button_position(self):
-        delta = 5
-        button = pyautogui.locateOnScreen(path.join(HERE, 'data', 'signs', 'button.png'),
-                                          confidence=0.90,
-                                          grayscale=True)
+        DELTA = 5
+        # TODO specify region for searching
+        regions = {0: (1006 - DELTA, 655 - DELTA, 50 + 2 * DELTA, 41 + 2 * DELTA),
+                   1: (709 - DELTA, 495 - DELTA, 50 + 2 * DELTA, 41 + 2 * DELTA),
+                   2: (553 - DELTA, 363 - DELTA, 50 + 2 * DELTA, 41 + 2 * DELTA),
+                   3: (1214 - DELTA, 270 - DELTA, 50 + 2 * DELTA, 41 + 2 * DELTA),
+                   4: (1578 - DELTA, 355 - DELTA, 50 + 2 * DELTA, 41 + 2 * DELTA),
+                   5: (1504 - DELTA, 601 - DELTA, 50 + 2 * DELTA, 41 + 2 * DELTA)}
+        for player in regions.keys():
+            button = pyautogui.locateOnScreen(path.join(HERE, 'data', 'signs', 'button.png'),
+                                              confidence=0.90,
+                                              region=regions[player],
+                                              grayscale=True)
+            # print('Button with coordinates =', button, 'is found')
+            if button is not None:
+                return player
+
+        if button is None:
+            sys.exit('Application did not find buttion position!')
+
         # screen = pyautogui.screenshot(path.join(HERE, 'data', 'screenshots', 'screenshot.png'))
-        print('Button with coordinates =', button, 'is found')
+
 
         # (left=1578, top=355, width=50, height=41) ID=4
         # (left=1214, top=270, width=50, height=41) ID = 3
@@ -70,33 +86,49 @@ class Round(object):
         # (left=732, top=363, width=50, height=41) id = 2
         # (left=709, top=495, width=50, height=41) id = 1
         # (left=1006, top=655, width=50, height=41) id = 0
-        
-        if button is not None:
-            if button[0]>1006-delta and button[0]<1006+delta and button[1]>655-delta and button[1]<655+delta:
-                button_position = 0
-            elif button[0]>709-delta and button[0]<709+delta and button[1]>495-delta and button[1]<495+delta:
-                button_position = 1
-            elif button[0]>732-delta and button[0]<732+delta and button[1]>363-delta and button[1]<363+delta:
-                button_position = 2
-            elif button[0]>1214-delta and button[0]<1214+delta and button[1]>270-delta and button[1]<270+delta:
-                button_position = 3
-            elif button[0]>1578-delta and button<1578+delta and button[1]>355-delta and button[1]<355+delta:
-                    button_position = 4
-            elif button[0]>1504-delta and button[0]<1504+delta and button[1]>601-delta and button[1]<601-delta:
-                button_position = 5
-            else:
-                pass
-                sys.exit('Application did not find buttion position!')
-        else:
-            pass
-            sys.exit('Application did not find buttion position!')
-        return button_position
 
-    def get_sitting_out(self):
-        sitting_out = pyautogui.locateOnScreen(path.join(HERE, 'data', 'signs', 'sitting_out.png'),
-                                          confidence=0.90,
-                                          grayscale=True)
-        print('Sitting_out with coordinates =', sitting_out, 'is found')
+        # if button is not None:
+        #     if button[0]>1006-DELTA and button[0]<1006+DELTA and button[1]>655-DELTA and button[1]<655+DELTA:
+        #         button_position = 0
+        #     elif button[0]>709-DELTA and button[0]<709+DELTA and button[1]>495-DELTA and button[1]<495+DELTA:
+        #         button_position = 1
+        #     elif button[0]>732-DELTA and button[0]<732+DELTA and button[1]>363-DELTA and button[1]<363+DELTA:
+        #         button_position = 2
+        #     elif button[0]>1214-DELTA and button[0]<1214+DELTA and button[1]>270-DELTA and button[1]<270+DELTA:
+        #         button_position = 3
+        #     elif button[0]>1578-DELTA and button<1578+DELTA and button[1]>355-DELTA and button[1]<355+DELTA:
+        #             button_position = 4
+        #     elif button[0]>1504-DELTA and button[0]<1504+DELTA and button[1]>601-DELTA and button[1]<601-DELTA:
+        #         button_position = 5
+        #     else:
+        #         pass
+        #         sys.exit('Application did not find buttion position!')
+        # else:
+        #     pass
+        #     sys.exit('Application did not find buttion position!')
+        # return button_position
+
+    def get_sitting_out_players(self):
+        DELTA = 5
+        sitting_out_players = []
+        # TODO specify region for searching
+        # key is ID of player. 0 - is our id
+        regions = {1:(507-DELTA, 611-DELTA, 131+2*DELTA, 21+2*DELTA),
+                   2:(553-DELTA, 290-DELTA, 131+2*DELTA, 21+2*DELTA),
+                   3:(1073-DELTA, 190-DELTA, 131+2*DELTA, 21+2*DELTA),
+                   4:(1664-DELTA, 290-DELTA, 131+2*DELTA, 21+2*DELTA),
+                   5:(1710-DELTA, 611-DELTA, 131+2*DELTA, 21+2*DELTA)}
+
+        for player in regions.keys():
+            sitting_out = pyautogui.locateOnScreen(path.join(HERE, 'data', 'signs', 'sitting_out.png'),
+                                                   confidence=0.90,
+                                                   region=regions[player],
+                                                   grayscale=True)
+            # print('Sitting_out with coordinates =', sitting_out, 'is found')
+
+            if sitting_out is not None:
+                sitting_out_players.append(player)
+
         # (left=1710, top=611, width=131, height=21) id = 5
         # (left=1664, top=290, width=131, height=21) id = 4
 
@@ -105,103 +137,27 @@ class Round(object):
         # (left=1710, top=611, width=131, height=21) id = 5
         # Box(left=507, top=611, width=131, height=21) id = 1
 
-        return sitting_out
+        # if sitting_out is not None:
+        #     if sitting_out[0]>1006-DELTA and sitting_out[0]<1006+delta and sitting_out[1]>655-delta and sitting_out[1]<655+delta:
+        #         button_position = 0
+        #     elif sitting_out[0]>709-DELTA and sitting_out[0]<709+delta and sitting_out[1]>495-delta and sitting_out[1]<495+delta:
+        #         button_position = 1
+        #     elif sitting_out[0]>732-DELTA and sitting_out[0]<732+delta and sitting_out[1]>363-delta and sitting_out[1]<363+delta:
+        #         button_position = 2
+        #     elif sitting_out[0]>1214-delta and sitting_out[0]<1214+delta and sitting_out[1]>270-delta and sitting_out[1]<270+delta:
+        #         button_position = 3
+        #     elif sitting_out[0]>1578-delta and sitting_out<1578+delta and sitting_out[1]>355-delta and sitting_out[1]<355+delta:
+        #             button_position = 4
+        #     elif sitting_out[0]>1504-delta and sitting_out[0]<1504+delta and sitting_out[1]>601-delta and sitting_out[1]<601-delta:
+        #         button_position = 5
+        #     else:
+        #         pass
+        #         sys.exit('Application did not find buttion position!')
+        # else:
+        #     pass
+        #     sys.exit('Application did not find buttion position!')
 
-def get_initial_data():
-
-    start_time = datetime.now()
-    dealer_sign = pyautogui.locateOnScreen(path.join(HERE, 'pictures', 'dealer_sign.png'),
-                                           confidence=0.90
-                                           # grayscale=True # dont use grascale because such picture can be on avatar of a player
-                                           )
-    finish_time = datetime.now()
-    timedelta = finish_time - start_time
-    print('Dealer sign with coordinates =', dealer_sign, 'is found for', timedelta.microseconds, 'microseconds')
-    if dealer_sign[0] == 377 and dealer_sign[1] == 429:
-        dealer_id = 0
-    elif dealer_sign[0] == 191 and dealer_sign[1] == 326:
-        dealer_id = 1
-    elif dealer_sign[0] == 205 and dealer_sign[1] == 243:
-        dealer_id = 2
-    elif dealer_sign[0] == 507 and dealer_sign[1] == 185:
-        dealer_id = 3
-    elif dealer_sign[0] == 736 and dealer_sign[1] == 239:
-        dealer_id = 4
-    elif dealer_sign[0] == 689 and dealer_sign[1] == 393:
-        dealer_id = 5
-    else:
-        pass
-        screen = pyautogui.screenshot(path.join(screenshots_path, 'screenshot.png'))
-        sys.exit('Can not define dealer_id!')
-
-    print('dealer_id = ',dealer_id)
-
-    # print('dealer_sign[left] = ',dealer_sign[0])
-    # Box(left=507, top=185, width=29, height=25) - highest (3)
-    # Box(left=191, top=326, width=29, height=25) - lower left (1)
-    # Box(left=377, top=427, width=29, height=25) - lowest (0)
-    # Box(left=205, top=243, width=29, height=25) - upper left (2)
-    # Box(left=736, top=239, width=29, height=25) - upper right (4)
-    # Box(left=689, top=393, width=29, height=25) - lower right (5)
-
-
-    start_time = datetime.now()
-    sitting_out = pyautogui.locateAllOnScreen(path.join(HERE, 'pictures', 'sitting_out.png'),
-                                           # region=(792 - 10, 621 - 10, 150 + 20, 14 + 20),
-                                           grayscale=True,
-                                           confidence=0.90
-                                           )
-    for s in sitting_out:
-        print('s=',s)
-    finish_time = datetime.now()
-    timedelta = finish_time - start_time
-    print('sitting_out with coordinates =', sitting_out, 'is found for', timedelta.microseconds, 'microseconds')
-    # Box(left=61, top=398, width=85, height=18) - id 1
-    # Box(left=90, top=197, width=85, height=18) - id 2
-    # Box(left=416, top=133, width=85, height=18) - id 3
-    # Box(left=787, top=197, width=85, height=18) - id 4
-    # Box(left=817, top=398, width=85, height=18) - id 5
-
-
-
-    # if dealer_sign is None:
-    #     screen = pyautogui.screenshot(path.join(screenshots_path, 'screenshot.png'))
-        # assert 1==3
-
-def get_digits():
-    # region = (970, 220, 450, 70) - area for searching digits if player with id 3
-    digits = []
-    # start_time = datetime.now()
-    zeros = pyautogui.locateAllOnScreen(path.join(HERE, 'pictures/digits', '0.png'),
-                                        region=(970, 220, 450, 70),
-                                        # grayscale=True,
-                                        confidence=0.9
-                                        )
-
-    digits.append([0 for x in range(len(list(zeros)))])
-
-    ones = pyautogui.locateAllOnScreen(path.join(HERE, 'pictures/digits', '1.png'),
-                                        region=(970, 220, 450, 70),
-                                        # grayscale=True,
-                                        confidence=0.85
-                                        )
-
-    digits.append([1 for x in range(len(list(ones)))])
-
-    if len(digits[0]) > 0 and len(digits[1]) > 0:
-        print('digits = ', digits)
-
-    # finish_time = datetime.now()
-    # timedelta = finish_time - start_time
-    # print('zeros with coordinates =', zeros, 'is found for', timedelta.microseconds, 'microseconds')
-    # screen = pyautogui.screenshot(path.join(screenshots_path, 'screenshot.png'))
-    # n = 0
-    # for s in zeros:
-    #     print('s=', s)
-    #     n = n + 1
-    #
-    # if n > 0:
-    #     sys.exit('ok')
+        return sitting_out_players
 
 
 if __name__ == '__main__':
@@ -218,10 +174,10 @@ if __name__ == '__main__':
     while True:
         time.sleep(1)
 
-        if round.is_started() or 1==1:
+        if round.is_started():
             print('ROUND IS STARTED!')
-            print('button_position = ', round.get_button_position())
-            round.get_sitting_out()
+            print('button position = ', round.get_button_position())
+            print('sitting out players = ',round.get_sitting_out_players())
 
 
         # screen = pyautogui.screenshot(path.join(screenshots_path, 'screenshot.png'),
