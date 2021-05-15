@@ -7,7 +7,7 @@ import sys
 import numpy as np
 # import ocr
 from ocr import ocr_digits
-import cv2
+# import cv2
 
 HERE = path.abspath(path.dirname(__file__))
 # screenshots_path = path.join(HERE, 'screenshots')
@@ -179,7 +179,7 @@ class Round(object):
             # convert PIL image to opencv format
             bet_screen_CV = np.array(bet_screen_PIL)
             # cv2.imwrite(f'bet_screen_CV{player_id}.png', bet_screen_CV)
-            bets[player_id] = ocr_digits.get_number(bet_screen_CV, player_id)
+            bets[player_id] = ocr_digits.get_number(bet_screen_CV)
 
         return bets
             # print(ocr.get_number(screen_digits_3_CV))
