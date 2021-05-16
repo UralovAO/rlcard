@@ -38,7 +38,9 @@ if __name__ == "__main__":
             else:
                 responses.append(key)
                 sample = roismall.reshape((1,100))
+                # print('sample.shape = ', sample.shape)
                 samples = np.append(samples,sample,0)
+                # print('samples = ', samples)
 
     responses = np.array(responses,np.float32)
     responses = responses.reshape((responses.size,1))

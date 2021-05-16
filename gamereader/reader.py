@@ -5,9 +5,11 @@ from datetime import datetime
 import pygetwindow
 import sys
 import numpy as np
+from glob import glob
 # import ocr
-from ocr import ocr_digits
-# import cv2
+from ocr.cards import ocr_cards
+from ocr.digits import ocr_digits
+import cv2
 
 HERE = path.abspath(path.dirname(__file__))
 # screenshots_path = path.join(HERE, 'screenshots')
@@ -212,26 +214,89 @@ class Round(object):
         # import ocr.get_number as ocr
         # print(ocr.get_number(screen_digits_3_CV))
 
+    def get_cards(self):
+        DELTA = 0
+        cards = {}
+        # (left=940, top=382, width=24, height=48)
+        # (left=1036, top=382, width=24, height=48)
+        # (left=1132, top=382, width=23, height=48)
+        # (left=1228, top=382, width=24, height=48)
+        # (left=1323, top=382, width=24, height=48)
+
+        # (left=1177, top=685, width=24, height=48)
+        # (left=1087, top=686, width=24, height=48)
+        regions = {1: (1177 - DELTA, 685 - DELTA, 24 + 2 * DELTA, 48 + 2 * DELTA),
+                   2: (1087 - DELTA, 686 - DELTA, 24 + 2 * DELTA, 48 + 2 * DELTA)}
+
+        for card_id in regions.keys():
+            card_screen_PIL = pyautogui.screenshot(
+                path.join(HERE, 'data', 'screenshots', f'card_screen_{card_id}.png'),
+                region=regions[card_id]
+            )
+            # convert PIL image to opencv format
+            card_screen_CV = cv2.cvtColor(np.array(card_screen_PIL), cv2.COLOR_RGB2BGR)
+            # cv2.imwrite(f'bet_screen_CV{player_id}.png', bet_screen_CV)
+            cards[card_id] = ocr_cards.get_card_rank_value(card_screen_CV)
+
+        return cards
 
 if __name__ == '__main__':
-    time.sleep(3)
+    time.sleep(4)
 
     game = Game()
     game.set_work_position()
 
     round = Round()
 
+    # screen = pyautogui.screenshot('screenshot.png',
+    #                               region=(900, 370, 100, 48))
+
+    # sys.exit('ff')
+
     while True:
         time.sleep(1)
 
         if round.is_started():
             print('ROUND IS STARTED!')
-            screen = pyautogui.screenshot(path.join(HERE, 'data', 'screenshots', 'screenshot.png'))
+        #     screen = pyautogui.screenshot(path.join(HERE, 'data', 'screenshots', 'screenshot.png'))
             print('button position = ', round.get_button_position())
-            # print('sitting out players = ',round.get_sitting_out_players())
             print('bets = ', round.get_bets())
-
+            print('cards = ', round.get_cards())
             break
+
+######
+
+        # pictures_path = sorted(glob(path.join(r'D:\Development\PyCharm\rlcard\ocr\cards\data\pictures', '*.png')))
+        # print('pictures_path = ', pictures_path)
+
+        # screen = pyautogui.screenshot(path.join(screenshots_path, 'screenshot.png'),
+        #                               region=(970, 220, 450, 70))
+
+        # pyautogui.moveTo(50, 100)
+        # for picture_path in pictures_path:
+        #     print(picture_path)
+        #     picture = pyautogui.locateOnScreen(picture_path,
+        #                                        confidence=0.90,
+        #                                        region=(900, 370, 100, 150),
+        #                                        grayscale=False)
+        #
+        #     if picture is not None:
+        #         print('picture = ',picture)
+        #         print(f'{datetime.now()} picture_is_found ')
+                # (left=940, top=382, width=24, height=48)
+                # (left=1036, top=382, width=24, height=48)
+                # (left=1132, top=382, width=23, height=48)
+                # (left=1228, top=382, width=24, height=48)
+                # (left=1323, top=382, width=24, height=48)
+
+                # (left=1177, top=685, width=24, height=48)
+                # (left=1087, top=686, width=24, height=48)
+
+                # break
+
+
+            ######
+            # break
         # break
         # get_digits()
         # get_initial_data()
