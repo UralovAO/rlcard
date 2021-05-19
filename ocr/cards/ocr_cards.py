@@ -5,7 +5,7 @@ from os import path
 HERE = path.abspath(path.dirname(__file__))
 
 # def get_number(image_path = 'data/2.png'):
-def get_card_rank_value(im):
+def get_card(im):
     model = cv2.ml.KNearest_load(path.join(HERE, 'model', 'model.xml'))
 
     # im = cv2.imread(image_path)
@@ -34,6 +34,10 @@ def get_card_rank_value(im):
         rank = 'd'
         value = chr(int(digit_rank_value[3:]))
         rank_value = rank + value
+    elif digit_rank_value[:3] == '103':
+        rank_value = None
+    else:
+        sys.exit('Application: rank is incorrect')
 
     # print('rank_value = ', rank_value)
 

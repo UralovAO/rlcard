@@ -29,7 +29,7 @@ while True:
         # print(picture_path)
         picture = pyautogui.locateOnScreen(picture_path,
                                            confidence=0.90,
-                                           region=(1132, 382, 24, 48),
+                                           region=(1132-5, 382-5, 24+10, 48+10),
                                            grayscale=False)
         if picture is not None:
             picture_is_found = True

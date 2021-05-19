@@ -14,8 +14,10 @@ for picture_path in pictures_path:
     print('picture_path = ', picture_path)
     rank_value = picture_path.replace('.png', '')[-2:]
     # get digit representation of rank and value of card
+    print('ord(rank_value[0]) = ', ord(rank_value[0]))
     digit_rank_value = str(ord(rank_value[0]))+str(ord(rank_value[1]))
     # ranks = [115, 104, 100, 99]
+    # 103 - green table, e.g no card
     responses.append(digit_rank_value)
 
 
