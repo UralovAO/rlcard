@@ -204,6 +204,8 @@ class Game(object):
         else:
             sys.exit('River card is undefined')
 
+
+
 class Stage(object):
     def get_name(self):
         pass

@@ -10,12 +10,13 @@ def get_number(image_path):
     im = cv2.imread(image_path)
     # preproccessed_image = preproccess_image(im)
     #
-    # cv2.imshow('out',preproccessed_image)
+    # print('im = ', im)
+    # cv2.imshow('out',im)
     # cv2.waitKey(0)
     gray = cv2.cvtColor(im,cv2.COLOR_BGR2GRAY)
-    blur = cv2.GaussianBlur(gray,(1,1),0)
-    # blur = gray
-    threshold = 140
+    # blur = cv2.GaussianBlur(gray,(1,1),0)
+    blur = gray
+    threshold = 170
     _, preproccessed_image = cv2.threshold(blur, threshold, 255, cv2.THRESH_BINARY)
 
     cv2.imshow('out',preproccessed_image)
@@ -29,7 +30,7 @@ def get_number(image_path):
     for cnt in contours:
         if cv2.contourArea(cnt)>0:
             [x,y,w,h] = cv2.boundingRect(cnt)
-            if  (h>14 and h<18 and w<14) or (h>0 and h<5 and w<5):
+            if  (h>14 and h<18 and w<14) or (h>0 and h<3 and w<3):
             # if (h > 14 and h < 18 and w < 14) or (h > 0 and h < 5 and w < 5):
             # if 1==1:
                 cv2.rectangle(im,(x,y),(x+w,y+h),(0,255,0),2)
@@ -46,8 +47,11 @@ def get_number(image_path):
     # print('digits = ', digits)
     result_number = [x[1] for x in digits]
     result_number = "".join(result_number)
-    print('result_number = ', result_number)
+
+
     result_number = float(result_number)
+    # result_number = result_number * 1000
+    print('result_number = ', result_number)
 
 
     cv2.imshow('im',im)
@@ -58,4 +62,4 @@ def get_number(image_path):
     return result_number
 
 # get_number(r'D:\Development\PyCharm\rlcard\screenshots/screen_digits_3_PIL.png')
-get_number(r'D:\Development\PyCharm\rlcard\gamereader/bet_screen_CV4.png')
+get_number(r'D:\Development\PyCharm\rlcard\gamereader\errors\2\sample.png')

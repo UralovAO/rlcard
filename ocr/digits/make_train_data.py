@@ -6,9 +6,9 @@ HERE = path.abspath(path.dirname(__file__))
 
 def preproccess_image(im):
     gray = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
-    blur = cv2.GaussianBlur(gray, (1, 1), 0)
-    # blur = gray
-    threshold = 130
+    # blur = cv2.GaussianBlur(gray, (1, 1), 0)
+    blur = gray
+    threshold = 170
     _, thresh = cv2.threshold(blur, threshold, 255, cv2.THRESH_BINARY)
     return thresh
 
@@ -26,7 +26,7 @@ if __name__ == "__main__":
     for cnt in contours:
         [x,y,w,h] = cv2.boundingRect(cnt)
 
-        if  (h>14 and h<18 and w<14) or (h>1 and h<4 and w<4):
+        if  (h>14 and h<17 and w<14) or (h>1 and h<3 and w<3):
             cv2.rectangle(im,(x,y),(x+w,y+h),(0,0,255),2)
             roi = preproccessed_image[y:y+h,x:x+w]
             roismall = cv2.resize(roi,(10,10))
