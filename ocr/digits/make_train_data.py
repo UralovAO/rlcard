@@ -7,7 +7,13 @@ HERE = path.abspath(path.dirname(__file__))
 def preproccess_image(im):
     gray = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
     # blur = cv2.GaussianBlur(gray, (1, 1), 0)
-    blur = gray
+
+    kernel = np.ones((1, 1), np.uint8)
+    opening = cv2.morphologyEx(gray, cv2.MORPH_OPEN, kernel)
+    closing = cv2.morphologyEx(opening, cv2.MORPH_CLOSE, kernel)
+
+    # blur = gray
+    blur = closing
     threshold = 170
     _, thresh = cv2.threshold(blur, threshold, 255, cv2.THRESH_BINARY)
     return thresh

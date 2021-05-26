@@ -121,14 +121,29 @@ class Screen(object):
 class Game(object):
     # def __init__(self):
     #     self.current_stage
-    def get_button_position(self):
+    def set_button_position(self):
         screen = Screen()
-        return screen.get_button_position()
+        self.button_position = screen.get_button_position()
+
+    def get_button_position(self):
+        if self.button_position is not None:
+            return self.button_position
+        else:
+            sys.exit('Buttion position is not initialised!')
+
+    def set_bets(self):
+        screen = Screen()
+        self.bets = screen.get_bets()
 
     def get_bets(self):
-        screen = Screen()
-        bets = screen.get_bets()
-        return bets
+        return self.bets
+
+    def set_pot(self):
+        self.pot = sum(filter(lambda x: x is not None, self.bets.values()))
+
+    def get_pot(self):
+        return self.pot
+
 
     def wait_for_bet_button(self):
         screen = Screen()
@@ -145,7 +160,7 @@ class Game(object):
                 time.sleep(0.5)
 
 
-    def wait_for_our_bet(self):
+    def wait_for_player_bet(self):
         while True:
             no_bet_button = screen.get_no_bet_button()
             # no_bet_button = pyautogui.locateOnScreen(path.join(HERE, 'data', 'signs', 'no_bet_button.png'),
@@ -204,7 +219,83 @@ class Game(object):
         else:
             sys.exit('River card is undefined')
 
+    def set_current_decisions(self):
 
+        button_position = self.get_button_position()
+        bets = self.get_bets()
+        pot = self.get_pot()
+        self.current_decisions = {}
+
+        previous_bet = BIG_BLIND
+        is_previous_allin = False
+
+        for player_id in range(button_position+2, 6):
+            if bets[player_id] is None:
+                self.current_decisions[player_id] = 'FOLD'
+            elif bets[player_id]
+            elif is_previous_allin  == True:
+                self.current_decisions[player_id] = 'CALL'
+            elif bets[player_id] == previous_bet:
+                self.current_decisions[player_id] = 'CALL'
+            elif bets[player_id] > previous_bet and bets[player_id] <= (3 * pot / 4):
+                self.current_decisions[player_id] = 'RAISE_HALF_POT'
+                previous_bet = bets[player_id]
+            elif bets[player_id] > (3 * pot / 4) and bets[player_id] <= pot + (100 * BIG_BLIND - pot) / 2:
+                self.current_decisions[player_id] = 'RAISE_POT'
+                previous_bet = bets[player_id]
+            elif bets[player_id] > pot + (100 * BIG_BLIND - pot) / 2:
+                self.current_decisions[player_id] = 'ALL_IN'
+                previous_bet = bets[player_id]
+                is_previous_allin = True
+            else:
+                sys.exit('Error. Application can not define decision!')
+
+        return current_decisions
+        pass
+
+    def get_current_decisions(self):
+        return self.current_decisions
+
+    def set_previous_decisions(self):
+
+        button_position = self.get_button_position()
+        bets = self.get_bets()
+        pot = self.get_pot()
+        self.current_decisions = {}
+
+        previous_bet = self.get_current_decisions()[0] # get player's (our) bet
+        is_previous_allin = False
+
+        for player_id in range(1, button_position+2):
+            if bets[player_id] is None:
+                self.current_decisions[player_id] = 'FOLD'
+            elif is_previous_allin  == True:
+                self.current_decisions[player_id] = 'CALL'
+            elif bets[player_id] == previous_bet:
+                self.current_decisions[player_id] = 'CALL'
+            elif bets[player_id] > previous_bet and bets[player_id] <= (3 * pot / 4):
+                self.current_decisions[player_id] = 'RAISE_HALF_POT'
+                previous_bet = bets[player_id]
+            elif bets[player_id] > (3 * pot / 4) and bets[player_id] <= pot + (100 * BIG_BLIND - pot) / 2:
+                self.current_decisions[player_id] = 'RAISE_POT'
+                previous_bet = bets[player_id]
+            elif bets[player_id] > pot + (100 * BIG_BLIND - pot) / 2:
+                self.current_decisions[player_id] = 'ALL_IN'
+                previous_bet = bets[player_id]
+                is_previous_allin = True
+            else:
+                sys.exit('Error. Application can not define decision!')
+
+        return current_decisions
+
+# class RoundState(object):
+#     button_position
+#     bets
+#     player_cards
+#     flop_cards
+#     turn_card
+#     river_card
+#     decisions
 
 class Stage(object):
     def get_name(self):
@@ -322,11 +413,18 @@ if __name__ == '__main__':
     #         print('player_cards = ', preflop.get_player_cards())
     while True:
         if game.wait_for_bet_button(): # waiting for other players finishes placing their bets if necessary
+
+            # read game data from screen
             game.set_community_cards()
             game.set_current_stage()
+            game.set_button_position()
+            game.set_bets()
+            game.set_previous_decisions()
+            game.set_current_decisions()
+
             stage = game.get_current_stage()
             print(stage)
-            print('button position = ', game.get_button_position())
+            print('button = ', game.get_button_position())
             if stage == 'PREFLOP':
                 print('bets = ', game.get_bets())
                 print('player_cards = ', game.get_player_cards())
@@ -344,7 +442,7 @@ if __name__ == '__main__':
                 print('river_cards = ', game.get_river_card())
             # we gave data to model
             # model gave us back answer
-            if game.wait_for_our_bet():
+            if game.wait_for_player_bet():
                 pass
 
         # if stage == 'PREFLOP':
