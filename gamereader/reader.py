@@ -118,6 +118,38 @@ class Screen(object):
                                                  )
         return no_bet_button
 
+    def get_folded_players(self):
+        # Box(left=1088, top=99, width=79, height=25)
+        # Box(left=1178, top=99, width=79, height=25)
+        # Box(left=569, top=199, width=79, height=25)
+        # Box(left=659, top=199, width=79, height=25)
+        # Box(left=1607, top=199, width=79, height=25)
+        # Box(left=1697, top=199, width=79, height=25)
+        # Box(left=522, top=520, width=79, height=25)
+        # Box(left=612, top=520, width=79, height=25)
+        # Box(left=1654, top=520, width=79, height=25)
+        # Box(left=1744, top=520, width=79, height=25)
+        # Box(left=1088, top=709, width=79, height=25)
+        # Box(left=1178, top=709, width=79, height=25)
+        DELTA = 0
+        folded_players = []
+        regions = {1: (522 - DELTA, 520 - DELTA, 79 + 2 * DELTA, 25 + 2 * DELTA),
+                   2: (569 - DELTA, 199 - DELTA, 79 + 2 * DELTA, 25 + 2 * DELTA),
+                   3: (1088 - DELTA, 99 - DELTA, 79 + 2 * DELTA, 25 + 2 * DELTA),
+                   4: (1607 - DELTA, 199 - DELTA, 79 + 2 * DELTA, 25 + 2 * DELTA),
+                   5: (1654 - DELTA, 520 - DELTA, 79 + 2 * DELTA, 25 + 2 * DELTA)}
+
+        for player_id in regions.keys():
+            card = pyautogui.locateOnScreen(path.join(HERE, 'data', 'signs', 'card.png'),
+                                              confidence=0.95,
+                                              region=regions[player_id],
+                                              grayscale=False)
+            # print('Button with coordinates =', button, 'is found')
+            if card is None:
+                folded_players.append(player_id)
+
+        return folded_players
+
 class Game(object):
     # def __init__(self):
     #     self.current_stage
@@ -181,25 +213,27 @@ class Game(object):
         self.turn_card = screen.get_turn_card()
         self.flop_cards = screen.get_flop_cards()
 
-    def set_current_stage(self):
+    def set_current_street(self):
         if self.river_card is not None:
-            self.current_stage = 'RIVER'
+            self.current_street = 'RIVER'
         else:
             if self.turn_card is not None:
-                self.current_stage = 'TURN'
+                self.current_street = 'TURN'
             else:
                 if len(list(filter(lambda x: x is not None, self.flop_cards.values()))) > 0:
-                    self.current_stage = 'FLOP'
+                    self.current_street = 'FLOP'
                 else:
-                    self.current_stage = 'PREFLOP'
+                    self.current_street = 'PREFLOP'
 
-    def get_current_stage(self):
-        return self.current_stage
+    def get_current_street(self):
+        return self.current_street
+
+    def set_player_cards(self):
+        screen = Screen()
+        self.player_cards = screen.get_player_cards()
 
     def get_player_cards(self):
-        screen = Screen()
-        cards = screen.get_player_cards()
-        return cards
+        return self.player_cards
 
     def get_flop_cards(self):
         if self.flop_cards is not None:
@@ -219,21 +253,33 @@ class Game(object):
         else:
             sys.exit('River card is undefined')
 
+    def set_folded_players(self):
+        screen = Screen()
+        self.folded_players = screen.get_folded_players()
+
+    def get_folded_players(self):
+        return self.folded_players
+
     def set_current_decisions(self):
 
         button_position = self.get_button_position()
         bets = self.get_bets()
         pot = self.get_pot()
+        folded_players = self.get_folded_players()
         self.current_decisions = {}
 
         previous_bet = BIG_BLIND
-        is_previous_allin = False
+        # is_previous_allin = False
 
+        # we need decisions only after BB position and before ours
+        # this decisions we pass to AI
         for player_id in range(button_position+2, 6):
-            if bets[player_id] is None:
+            if player_id in folded_players:
                 self.current_decisions[player_id] = 'FOLD'
-            elif bets[player_id]
-            elif is_previous_allin  == True:
+            elif bets[player_id] is None:
+                self.current_decisions[player_id] = 'CHECK'
+            elif 'ALL_IN' in list(self.current_decisions.values()):
+            # elif is_previous_allin  == True:
                 self.current_decisions[player_id] = 'CALL'
             elif bets[player_id] == previous_bet:
                 self.current_decisions[player_id] = 'CALL'
@@ -246,7 +292,7 @@ class Game(object):
             elif bets[player_id] > pot + (100 * BIG_BLIND - pot) / 2:
                 self.current_decisions[player_id] = 'ALL_IN'
                 previous_bet = bets[player_id]
-                is_previous_allin = True
+                # is_previous_allin = True
             else:
                 sys.exit('Error. Application can not define decision!')
 
@@ -261,32 +307,39 @@ class Game(object):
         button_position = self.get_button_position()
         bets = self.get_bets()
         pot = self.get_pot()
-        self.current_decisions = {}
+        folded_players = self.get_folded_players()
 
-        previous_bet = self.get_current_decisions()[0] # get player's (our) bet
+        self.previous_decisions = self.current_decisions
+
+        previous_bet = self.previous_decisions[0] # get player's (our) bet
         is_previous_allin = False
 
         for player_id in range(1, button_position+2):
-            if bets[player_id] is None:
-                self.current_decisions[player_id] = 'FOLD'
-            elif is_previous_allin  == True:
-                self.current_decisions[player_id] = 'CALL'
+            if player_id in folded_players:
+                self.previous_decisions[player_id] = 'FOLD'
+            elif 'ALL_IN' in list(self.previous_decisions.values()):
+                self.previous_decisions[player_id] = 'CALL'
+            elif player_id == button_position + 2 and bets[player_id] == BIG_BLIND: # check on BB position
+                self.previous_decisions[player_id] = 'CHECK'
+            # elif is_previous_allin  == True:
+            #     self.current_decisions[player_id] = 'CALL'
             elif bets[player_id] == previous_bet:
-                self.current_decisions[player_id] = 'CALL'
+                self.previous_decisions[player_id] = 'CALL'
             elif bets[player_id] > previous_bet and bets[player_id] <= (3 * pot / 4):
-                self.current_decisions[player_id] = 'RAISE_HALF_POT'
+                self.previous_decisions[player_id] = 'RAISE_HALF_POT'
                 previous_bet = bets[player_id]
             elif bets[player_id] > (3 * pot / 4) and bets[player_id] <= pot + (100 * BIG_BLIND - pot) / 2:
-                self.current_decisions[player_id] = 'RAISE_POT'
+                self.previous_decisions[player_id] = 'RAISE_POT'
                 previous_bet = bets[player_id]
-            elif bets[player_id] > pot + (100 * BIG_BLIND - pot) / 2:
-                self.current_decisions[player_id] = 'ALL_IN'
+            elif bets[player_id] > pot + 3*(100 * BIG_BLIND - pot) / 4:
+                self.previous_decisions[player_id] = 'ALL_IN'
                 previous_bet = bets[player_id]
                 is_previous_allin = True
             else:
                 sys.exit('Error. Application can not define decision!')
 
-        return current_decisions
+    def get_previous_decisions(self):
+        return self.previous_decisions
 
 # class RoundState(object):
 #     button_position
@@ -297,105 +350,6 @@ class Game(object):
 #     river_card
 #     decisions
 
-class Stage(object):
-    def get_name(self):
-        pass
-
-
-class Preflop(Stage):
-    def __init__(self):
-        self.name = 'PREFLOP'
-
-    def get_name(self):
-        return self.name
-
-
-    # def __get_leftmost_community_card(self):
-    #     card_screen_PIL = pyautogui.screenshot(region=(940, 382, 24, 48))  # leftmost position of community cards
-    #     convert PIL image to opencv format
-        # card_screen_CV = cv2.cvtColor(np.array(card_screen_PIL), cv2.COLOR_RGB2BGR)
-        # card = ocr_cards.get_card(card_screen_CV)
-        # return card
-
-    # def is_started(self):
-    #     while True:
-    #         time.sleep(0.5)
-    #         if self.bet_button_is_activated():
-                # if it is preflop then there is no card on desk
-                # we try to find leftmost community card
-
-                # if __get_leftmost_community_card() is None:
-                #     return True
-                # else:
-                #     pass
-                    # return False
-
-    # def is_finished(self):
-    #     if __get_leftmost_community_card() is None:
-    #         return False
-    #     else:
-    #         return True
-
-
-class Flop(Stage):
-    def __init__(self, cards):
-        self.name = 'PREFLOP'
-        self.cards = cards
-
-    def get_name(self):
-        return self.name
-
-    def get_flop_cards(self):
-        if self.cards is not None:
-            return self.cards
-        else:
-            sys.exit('Flop cards is undefined')
-
-        # DELTA = 0
-        # cards = {}
-        #
-        # regions = {1: (940 - DELTA, 382 - DELTA, 24 + 2 * DELTA, 48 + 2 * DELTA),
-        #            2: (1036 - DELTA, 382 - DELTA, 24 + 2 * DELTA, 48 + 2 * DELTA),
-        #            3: (1132 - DELTA, 382 - DELTA, 24 + 2 * DELTA, 48 + 2 * DELTA)}
-        #
-        # for card_id in regions.keys():
-        #     cards[card_id] = self.get_card_by_region(regions[card_id])
-        #
-        # return cards
-    # def is_started
-class Turn(Stage):
-    def __init__(self, card):
-        self.name = 'TURN'
-        self.card = card
-
-    def get_name(self):
-        return self.name
-
-
-    def get_turn_card(self):
-        if self.card is not None:
-            return self.card
-        else:
-            sys.exit('Turn card is undefined')
-
-class River(Stage):
-    # def get_river_card(self):
-    #     DELTA = 0
-    #     card = self.get_card_by_region((1323 - DELTA, 382 - DELTA, 24 + 2 * DELTA, 48 + 2 * DELTA))
-    #     return card
-
-    def __init__(self, card):
-        self.name = 'RIVER'
-        self.card = card
-
-    def get_name(self):
-        return self.name
-
-    def get_river_card(self):
-        if self.card is not None:
-            return self.card
-        else:
-            sys.exit('River card is undefined')
 
 if __name__ == '__main__':
     time.sleep(4)
@@ -405,41 +359,54 @@ if __name__ == '__main__':
 
     game = Game()
 
-    # if game.wait_for_bet_button():
-    #     print('button position = ', game.get_button_position())
-    #     stage = game.get_current_stage()
-    #     if stage == 'PREFLOP':
-    #         print('bets = ', preflop.get_bets())
-    #         print('player_cards = ', preflop.get_player_cards())
+    # print('folded = ', screen.get_folded_players())
+    # sys.exit('g')
+    is_first_round = True
+    previous_street = None
+
     while True:
         if game.wait_for_bet_button(): # waiting for other players finishes placing their bets if necessary
 
             # read game data from screen
             game.set_community_cards()
-            game.set_current_stage()
+            game.set_player_cards()
+            game.set_current_street()
             game.set_button_position()
             game.set_bets()
-            game.set_previous_decisions()
-            game.set_current_decisions()
+            game.set_folded_players()
+            # game.set_previous_decisions()
+            # game.set_current_decisions()
 
-            stage = game.get_current_stage()
-            print(stage)
+            street = game.get_current_street()
+            if street == previous_street:
+                is_first_round = False
+
+            if is_first_round:
+                game.set_decisions_after_BB()
+            else:
+                game.set_decisions_before_BB()
+                game.set_decisions_after_BB()
+
+            print(street)
             print('button = ', game.get_button_position())
-            if stage == 'PREFLOP':
+            if street == 'PREFLOP':
                 print('bets = ', game.get_bets())
                 print('player_cards = ', game.get_player_cards())
                 # print('community_cards = ', preflop.get_community_cards())
-            elif stage == 'FLOP':
+            elif street == 'FLOP':
                 print('bets = ', game.get_bets())
                 # print('player_cards = ', flop.get_player_cards())
                 print('flop_cards = ', game.get_flop_cards())
-            elif stage == 'TURN':
+            elif street == 'TURN':
                 print('bets = ', game.get_bets())
                 print('turn_cards = ', game.get_turn_card())
-            elif stage == 'RIVER':
+            elif street == 'RIVER':
                 print('bets = ', game.get_bets())
                 # print('player_cards = ', flop.get_player_cards())
                 print('river_cards = ', game.get_river_card())
+
+            previous_street = street
+
             # we gave data to model
             # model gave us back answer
             if game.wait_for_player_bet():
