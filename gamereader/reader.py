@@ -201,6 +201,7 @@ class Game(object):
         self.full_pot = 0
         self.set_first_round_sign(True)
 
+        # clear previous logs
         filelist = [f for f in glob(path.join(HERE, 'logs', '*.*'))]
         for f in filelist:
             remove(f)
@@ -515,6 +516,8 @@ if __name__ == '__main__':
             if street != previous_street:
                 setup_logger(street, path.join(HERE, 'logs', f'{street}.log'))
                 n_round = 1
+            else:
+                n_round +=1
 
             print(street)
 
