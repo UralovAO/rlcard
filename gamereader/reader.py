@@ -223,6 +223,9 @@ class Game(object):
         for f in filelist:
             remove(f)
 
+    def clear_decisions(self):
+        self.decisions = None
+
     def set_first_round_sign(self, first_round_sign):
         self.first_round_sign = first_round_sign
 
@@ -494,7 +497,7 @@ class Game(object):
         bets = self.get_bets()
         full_pot_previous_rounds = self.get_full_pot()
         folded_players = self.get_folded_players()
-        self.decisions = {} # TODO
+        # self.decisions = {} # TODO
 
         previous_bet = bets[0]
         # is_previous_allin = False
@@ -588,7 +591,7 @@ class Game(object):
                 self.decisions[player_id] = 'FOLD'
             elif bets[player_id] is None:
                 self.decisions[player_id] = 'CHECK'
-            elif 'ALL_IN' in list(self.decisions_after_BB.values()):
+            elif 'ALL_IN' in list(self.decisions.values()):
             # elif is_previous_allin  == True:
                 self.decisions[player_id] = 'CALL'
             elif bets[player_id] == previous_bet:
@@ -818,18 +821,11 @@ if __name__ == '__main__':
             game.set_folded_players()
             game.set_full_pot()
 
-
+            game.clear_decisions()
             # game.set_previous_decisions()
             # game.set_current_decisions()
 
             street = game.get_current_street()
-
-            # set up logging
-            if street != previous_street:
-                setup_logger(street, path.join(HERE, 'logs', f'{street}.log'))
-                n_round = 1
-            else:
-                n_round +=1
 
             if street == 'PREFLOP' and previous_street != 'PREFLOP':
                 print('GAME IS STARTED!')
@@ -844,6 +840,13 @@ if __name__ == '__main__':
                 else:
                     game.set_decisions_all_players()
                 # game.set_first_round_sign(False)
+
+            # set up logging
+            if street != previous_street:
+                setup_logger(street, path.join(HERE, 'logs', f'{street}.log'))
+                n_round = 1
+            else:
+                n_round += 1
 
             screen = pyautogui.screenshot(path.join(HERE, 'logs', f'{street}_{n_round}.png'))
 
