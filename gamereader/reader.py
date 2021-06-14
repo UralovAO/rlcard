@@ -224,7 +224,7 @@ class Game(object):
             remove(f)
 
     def clear_decisions(self):
-        self.decisions = None
+        self.decisions = {}
 
     def set_first_round_sign(self, first_round_sign):
         self.first_round_sign = first_round_sign
@@ -374,152 +374,32 @@ class Game(object):
     def get_folded_players(self):
         return self.folded_players
 
-    def set_decisions_before_player(self):
-        # logging.debug('start set_decisions_after_BB')
-
-        button_position = self.get_button_position()
-        bets = self.get_bets()
-        full_pot_previous_rounds = self.get_full_pot()
-        folded_players = self.get_folded_players()
-        self.decisions_before_player = {}
-
-        previous_bet = BIG_BLIND
-        # is_previous_allin = False
-
-        logging.debug('set_decisions_before_player button_position = ',button_position)
-        logging.debug('set_decisions_before_player bets = ', bets)
-        logging.debug('set_decisions_before_player full pot of previous rounds = ', full_pot_previous_rounds)
-        logging.debug('set_decisions_before_player folded_players = ', folded_players)
-
-        # we need decisions only after BB position and before ours
-        # this decisions we pass to AI
-        start_position = (button_position+3)%6
-        logging.debug('set_decisions_after_BB start_position = ', start_position)
-        if start_position == 0:
-            return
-
-        for player_id in range(start_position, 6): # if button position+3 is more then 6 then we have to make it less then 6
-            logging.debug('set_decisions_before_player player_id = ', player_id)
-            logging.debug('set_decisions_before_player previous_bet = ', previous_bet)
-            pot = self.get_pot_for_player_decision(player_id)
-            logging.debug('set_decisions_before_player pot = ',pot)
-            if player_id in folded_players:
-                self.decisions_before_player[player_id] = 'FOLD'
-            elif bets[player_id] is None:
-                self.decisions_before_player[player_id] = 'CHECK'
-            elif 'ALL_IN' in list(self.decisions_after_BB.values()):
-            # elif is_previous_allin  == True:
-                self.decisions_before_player[player_id] = 'CALL'
-            elif bets[player_id] == previous_bet:
-                self.decisions_before_player[player_id] = 'CALL'
-            elif bets[player_id] > previous_bet and bets[player_id] <= (3 * pot / 4):
-                self.decisions_before_player[player_id] = 'RAISE_HALF_POT'
-                previous_bet = bets[player_id]
-            elif bets[player_id] > (3 * pot / 4) and bets[player_id] <= pot + (100 * BIG_BLIND - pot) / 2:
-                self.decisions_before_player[player_id] = 'RAISE_POT'
-                previous_bet = bets[player_id]
-            elif bets[player_id] > pot + (100 * BIG_BLIND - pot) / 2:
-                self.decisions_before_player[player_id] = 'ALL_IN'
-                previous_bet = bets[player_id]
-                # is_previous_allin = True
-            else:
-                sys.exit('Error. Application can not define decision before player!')
-
-            logging.debug('set_decisions_before_player self.decisions_before_player = ',self.decisions_before_player)
-        # start_position('finish set_decisions_after_BB')
-        # print(' ')
-        pass
-
-    def get_decisions_before_player(self):
-        return self.decisions_before_player
-
-    def set_decisions_after_player(self):
-
-        button_position = self.get_button_position()
-        bets = self.get_bets()
-        full_pot_previous_rounds = self.get_full_pot()
-        folded_players = self.get_folded_players()
-
-        self.decisions_after_player = self.decisions_before_player
-
-        previous_bet = self.bets[0] # get player's (our) bet
-        is_previous_allin = False
-
-        logging.debug('set_decisions_after_player button_position = ',button_position)
-        logging.debug('set_decisions_after_player bets = ', bets)
-        logging.debug('set_decisions_after_player full pot of previous rounds = ', full_pot_previous_rounds)
-        logging.debug('set_decisions_after_player folded_players = ', folded_players)
-
-        start_position = (button_position+3)%6
-        logging.debug('set_decisions_after_player start_position = ', start_position)
-        if start_position == 0:
-            return
-
-        for player_id in range(1, button_position+2):
-
-            logging.debug('set_decisions_after_player player_id = ', player_id)
-            logging.debug('set_decisions_after_player previous_bet = ', previous_bet)
-            pot = self.get_pot_for_player_decision(player_id)
-            logging.debug('set_decisions_after_player pot = ', pot)
-
-            if player_id in folded_players:
-                self.decisions_after_player[player_id] = 'FOLD'
-            elif 'ALL_IN' in list(self.decisions_before_BB.values()):
-                self.decisions_after_player[player_id] = 'CALL'
-            elif player_id == button_position + 2 and bets[player_id] == BIG_BLIND: # check on BB position
-                self.decisions_after_player[player_id] = 'CHECK'
-            # elif is_previous_allin  == True:
-            #     self.current_decisions[player_id] = 'CALL'
-            elif bets[player_id] == previous_bet:
-                self.decisions_after_player[player_id] = 'CALL'
-            elif bets[player_id] > previous_bet and bets[player_id] <= (3 * pot / 4):
-                self.decisions_after_player[player_id] = 'RAISE_HALF_POT'
-                previous_bet = bets[player_id]
-            elif bets[player_id] > (3 * pot / 4) and bets[player_id] <= pot + (100 * BIG_BLIND - pot) / 2:
-                self.decisions_after_player[player_id] = 'RAISE_POT'
-                previous_bet = bets[player_id]
-            elif bets[player_id] > pot + 3*(100 * BIG_BLIND - pot) / 4:
-                self.decisions_after_player[player_id] = 'ALL_IN'
-                previous_bet = bets[player_id]
-                is_previous_allin = True
-            else:
-                sys.exit('Error. Application can not define decisions after player!')
-
-            logging.debug('set_decisions_after_player self.decisions_after_player = ', self.decisions_after_player)
-
-    def get_decisions_after_player(self):
-        return self.decisions_after_player
-
     def set_decisions_all_players(self):
         # logging.debug('start set_decisions_after_BB')
 
         button_position = self.get_button_position()
         bets = self.get_bets()
-        full_pot_previous_rounds = self.get_full_pot()
+        # previous_full_pot = self.get_previous_full_pot()  # pot at the previous moment when we asked for pressing button with decision
         folded_players = self.get_folded_players()
         # self.decisions = {} # TODO
 
-        previous_bet = bets[0]
+        previous_bet = self.get_previous_bets()[0]
         # is_previous_allin = False
-
-        logging.debug('set_decisions_all_players button_position = ',button_position)
-        logging.debug('set_decisions_all_players bets = ', bets)
-        logging.debug('set_decisions_all_players full pot of previous rounds = ', full_pot_previous_rounds)
-        logging.debug('set_decisions_all_players folded_players = ', folded_players)
-
-        # we need decisions only after BB position and before ours
-        # this decisions we pass to AI
+        logger.debug('set_decisions_all_players button_position = ',button_position)
+        logger.debug('set_decisions_all_players bets = ', bets)
+        # logger.debug('set_decisions_all_players full pot of previous rounds = ', full_pot_previous_rounds)
+        logger.debug('set_decisions_all_players folded_players = ', folded_players)
 
         for player_id in range(1, 6):
-            logging.debug('set_decisions_all_players player_id = ', player_id)
-            logging.debug('set_decisions_all_players previous_bet = ', previous_bet)
+            logger.debug('set_decisions_all_players player_id = ', player_id)
+            logger.debug('set_decisions_all_players previous_bet = ', previous_bet)
             pot = self.get_pot_for_player_decision(player_id)
-            logging.debug('set_decisions_before_player pot = ',pot)
+            logger.debug('set_decisions_before_player pot = ',pot)
             if player_id in folded_players:
                 self.decisions[player_id] = 'FOLD'
             elif bets[player_id] is None:
                 self.decisions[player_id] = 'CHECK'
-            elif 'ALL_IN' in list(self.decisions_after_BB.values()):
+            elif self.decisions is not None and 'ALL_IN' in list(self.decisions.values()):
             # elif is_previous_allin  == True:
                 self.decisions[player_id] = 'CALL'
             elif bets[player_id] == previous_bet:
@@ -537,7 +417,7 @@ class Game(object):
             else:
                 sys.exit('Error. Application can not define decision before player!')
 
-            logging.debug('set_decisions_before_player self.set_decisions_all_players = ',self.decisions)
+            logger.debug('set_decisions_before_player self.set_decisions_all_players = ',self.decisions)
         # start_position('finish set_decisions_after_BB')
         # print(' ')
         pass
@@ -561,38 +441,36 @@ class Game(object):
         return self.previous_bets
 
     def set_decisions_first_round(self):
-        # logging.debug('start set_decisions_after_BB')
-
+        # logger.debug('start set_decisions_after_BB')
         button_position = self.get_button_position()
         bets = self.get_bets()
-        full_pot_previous_rounds = self.get_full_pot()
+        # previous_full_pot = self.get_previous_full_pot()  # pot at the previous moment when we asked for pressing button with decision
         folded_players = self.get_folded_players()
-        self.decisions = {}
+        # self.decisions = {}
 
         previous_bet = BIG_BLIND
         # is_previous_allin = False
 
-        logging.debug('set_decisions_first_round button_position = ',button_position)
-        logging.debug('set_decisions_first_round bets = ', bets)
-        logging.debug('set_decisions_first_round full pot of previous rounds = ', full_pot_previous_rounds)
-        logging.debug('set_decisions_first_round folded_players = ', folded_players)
+        logger.debug('set_decisions_first_round button_position = ',button_position)
+        logger.debug('set_decisions_first_round bets = ', bets)
+        # logger.debug('set_decisions_first_round previous_full_pot = ', previous_full_pot)
+        logger.debug('set_decisions_first_round folded_players = ', folded_players)
 
         start_position = (button_position + 3) % 6
-        logging.debug('set_decisions_first_round start_position = ', start_position)
+        logger.debug('set_decisions_first_round start_position = ', start_position)
         if start_position == 0:
             return
 
-        for player_id in range(start_position, 6):  # if button position+3 is more then 6 then we have to make it less then 6
-            logging.debug('set_decisions_first_round player_id = ', player_id)
-            logging.debug('set_decisions_first_round previous_bet = ', previous_bet)
+        for player_id in range(start_position, 6):
+            logger.debug('set_decisions_first_round player_id = ', player_id)
+            logger.debug('set_decisions_first_round previous_bet = ', previous_bet)
             pot = self.get_pot_for_player_decision(player_id)
-            logging.debug('set_decisions_first_round pot = ',pot)
+            logger.debug('set_decisions_first_round pot = ',pot)
             if player_id in folded_players:
                 self.decisions[player_id] = 'FOLD'
             elif bets[player_id] is None:
                 self.decisions[player_id] = 'CHECK'
-            elif 'ALL_IN' in list(self.decisions.values()):
-            # elif is_previous_allin  == True:
+            elif self.decisions is not None and 'ALL_IN' in list(self.decisions.values()):
                 self.decisions[player_id] = 'CALL'
             elif bets[player_id] == previous_bet:
                 self.decisions[player_id] = 'CALL'
@@ -609,71 +487,14 @@ class Game(object):
             else:
                 sys.exit('Error. Application can not define decision for first round!')
 
-            logging.debug('set_decisions_first_round self.decisions = ',self.decisions)
-        # start_position('finish set_decisions_after_BB')
-        # print(' ')
+            logger.debug('set_decisions_first_round self.decisions = ',self.decisions)
         pass
-
-    def calculate_decisions_after_player(self):
-
-        button_position = self.get_button_position()
-        bets = self.get_bets()
-        full_pot_previous_rounds = self.get_full_pot()
-        folded_players = self.get_folded_players()
-
-        self.decisions_after_player = self.decisions_before_player
-
-        previous_bet = self.bets[0]  # get player's (our) bet
-
-        logging.debug('set_decisions_after_player button_position = ', button_position)
-        logging.debug('set_decisions_after_player bets = ', bets)
-        logging.debug('set_decisions_after_player full pot of previous rounds = ', full_pot_previous_rounds)
-        logging.debug('set_decisions_after_player folded_players = ', folded_players)
-
-        end_position = (button_position + 3) % 6
-        # if end_position
-        start_position = (button_position + 3) % 6
-        logging.debug('set_decisions_after_player start_position = ', start_position)
-        if start_position == 0:
-            return
-
-        for player_id in range(1, button_position + 3):
-
-            logging.debug('set_decisions_after_player player_id = ', player_id)
-            logging.debug('set_decisions_after_player previous_bet = ', previous_bet)
-            pot = self.get_pot_for_player_decision(player_id)
-            logging.debug('set_decisions_after_player pot = ', pot)
-
-            if player_id in folded_players:
-                self.decisions_after_player[player_id] = 'FOLD'
-            elif 'ALL_IN' in list(self.decisions_before_BB.values()):
-                self.decisions_after_player[player_id] = 'CALL'
-            elif player_id == button_position + 2 and bets[player_id] == BIG_BLIND:  # check on BB position
-                self.decisions_after_player[player_id] = 'CHECK'
-            # elif is_previous_allin  == True:
-            #     self.current_decisions[player_id] = 'CALL'
-            elif bets[player_id] == previous_bet:
-                self.decisions_after_player[player_id] = 'CALL'
-            elif bets[player_id] > previous_bet and bets[player_id] <= (3 * pot / 4):
-                self.decisions_after_player[player_id] = 'RAISE_HALF_POT'
-                previous_bet = bets[player_id]
-            elif bets[player_id] > (3 * pot / 4) and bets[player_id] <= pot + (100 * BIG_BLIND - pot) / 2:
-                self.decisions_after_player[player_id] = 'RAISE_POT'
-                previous_bet = bets[player_id]
-            elif bets[player_id] > pot + 3 * (100 * BIG_BLIND - pot) / 4:
-                self.decisions_after_player[player_id] = 'ALL_IN'
-                previous_bet = bets[player_id]
-                is_previous_allin = True
-            else:
-                sys.exit('Error. Application can not define decisions after player!')
-
-            logging.debug('set_decisions_after_player self.decisions_after_player = ', self.decisions_after_player)
 
     def __get_sum_bets(self, bets):
         return sum(filter(lambda x: x is not None, bets.values()))
 
     def calculate_decisions_after_changing_street(self):
-
+        current_street = self.get_current_street()
         button_position = self.get_button_position()
         bets = self.get_bets() # bets from current screen
         previous_full_pot = self.get_previous_full_pot() # pot at the previous moment when we asked for pressing button with decision
@@ -688,65 +509,70 @@ class Game(object):
         # we need to decide in wich round hi folded
         num_folded_players_previous_round_after_player = pot_previous_round_after_player/bet_previous_round_after_player
 
-        logging.debug('calculate_decisions_after_changing_street button_position = ', button_position)
-        logging.debug('calculate_decisions_after_changing_street folded_players = ', folded_players)
-        logging.debug('calculate_decisions_after_changing_street bets = ', bets)
-        logging.debug('calculate_decisions_after_changing_street folded_players = ', previous_full_pot)
-        logging.debug('calculate_decisions_after_changing_street folded_players = ', full_pot)
-        logging.debug('calculate_decisions_after_changing_street folded_players = ', current_street_pot)
-        logging.debug('calculate_decisions_after_changing_street folded_players = ', pot_previous_round_after_player)
-        logging.debug('calculate_decisions_after_changing_street folded_players = ', bet_previous_round_after_player)
-        # logging.debug('calculate_decisions_after_changing_street folded_players = ', num_folded_players_previous_round_after_player)
+        logger.debug('calculate_decisions_after_changing_street button_position = ', button_position)
+        logger.debug('calculate_decisions_after_changing_street folded_players = ', folded_players)
+        logger.debug('calculate_decisions_after_changing_street bets = ', bets)
+        logger.debug('calculate_decisions_after_changing_street folded_players = ', previous_full_pot)
+        logger.debug('calculate_decisions_after_changing_street folded_players = ', full_pot)
+        logger.debug('calculate_decisions_after_changing_street folded_players = ', current_street_pot)
+        logger.debug('calculate_decisions_after_changing_street folded_players = ', pot_previous_round_after_player)
+        logger.debug('calculate_decisions_after_changing_street folded_players = ', bet_previous_round_after_player)
+        # logger.debug('calculate_decisions_after_changing_street folded_players = ', num_folded_players_previous_round_after_player)
 
         # PREVIOUS ROUND
         # player which was the last who raised is the end of previous round
-        logging.debug('calculate_decisions_after_changing_street end_position = ', end_position)
+        logger.debug('calculate_decisions_after_changing_street end_position = ', end_position)
         previous_decisions = self.get_previous_decisions()
-        logging.debug('calculate_decisions_after_changing_street PREVIOUS ROUND')
+        logger.debug('calculate_decisions_after_changing_street PREVIOUS ROUND')
+        end_position = None
         for player_id in previous_decisions.keys().sort(reverse = True):
             if previous_decisions[player_id] == 'RAISE':
                 end_position = player_id
                 break
         if end_position == 0:
-            end_position == 6
+            end_position = 6
         if end_position is None:
-            sys.exit('Application. Method calculate_decisions_after_changing_street. Can not define end position!')
+            end_position = button_position + 2
+            # sys.exit('Application. Method calculate_decisions_after_changing_street. Can not define end position!')
 
-        logging.debug('calculate_decisions_after_changing_street end_position = ', end_position)
+        logger.debug('calculate_decisions_after_changing_street end_position = ', end_position)
 
         for player_id in range(1, end_position):
-            if self.previous_decisions[player_id] is not None:
-                sys.exit(f'Application. Method calculate_decisions_after_changing_street. Previous_decision for player {player_id} is not None!')
-            logging.debug('calculate_decisions_after_changing_street CYCLE player_id = ', player_id)
-            logging.debug(
+            logger.debug('calculate_decisions_after_changing_street CYCLE player_id = ', player_id)
+            logger.debug(
                 'calculate_decisions_after_changing_street CYCLE num_folded_players_previous_round_after_player = ',
                 num_folded_players_previous_round_after_player)
-            if player_id in folded_players and num_folded_players_previous_round_after_player > 0:
+            if self.previous_decisions[player_id] is not None:
+                sys.exit(
+                    f'Application. Method calculate_decisions_after_changing_street. Previous_decision for player {player_id} is not None!')
+            elif player_id in folded_players and num_folded_players_previous_round_after_player > 0:
                 num_folded_players_previous_round_after_player -= 1
                 self.previous_decisions[player_id] = 'FOLD'
+            elif current_street == 'FLOP' and player_id == button_position + 2 and end_position == button_position + 2:  # player on big blind on preflop
+                self.previous_decisions[player_id] = 'CHECK'
             else:
                 self.previous_decisions[player_id] = 'CALL'
 
-            logging.debug('calculate_decisions_after_changing_street self.previous_decisions = ', self.previous_decisions)
+            logger.debug('calculate_decisions_after_changing_street self.previous_decisions = ', self.previous_decisions)
 
         # CURRENT ROUND
-        logging.debug('calculate_decisions_after_changing_street CURRENT ROUND')
+        logger.debug('calculate_decisions_after_changing_street CURRENT ROUND')
         start_position = (button_position + 1) % 6
-        logging.debug('calculate_decisions_after_changing_street start_position = ', start_position)
+        logger.debug('calculate_decisions_after_changing_street start_position = ', start_position)
         if start_position == 0:
             return
 
         previous_bet = 0
         for player_id in range(start_position, 6):
-            logging.debug('calculate_decisions_after_changing_street player_id = ', player_id)
-            # logging.debug('calculate_decisions_after_changing_street previous_bet = ', previous_bet)
+            logger.debug('calculate_decisions_after_changing_street player_id = ', player_id)
+            # logger.debug('calculate_decisions_after_changing_street previous_bet = ', previous_bet)
             pot = self.get_pot_for_player_decision(player_id)
-            logging.debug('calculate_decisions_after_changing_street pot = ',pot)
+            logger.debug('calculate_decisions_after_changing_street pot = ',pot)
             if player_id in folded_players:
                 self.decisions[player_id] = 'FOLD'
             elif bets[player_id] is None:
                 self.decisions[player_id] = 'CHECK'
-            elif 'ALL_IN' in list(self.decisions.values()):
+            elif self.decisions is not None and 'ALL_IN' in list(self.decisions.values()):
                 self.decisions[player_id] = 'CALL'
             elif bets[player_id] == previous_bet:
                 self.decisions[player_id] = 'CALL'
@@ -782,30 +608,16 @@ if __name__ == '__main__':
 
     game = Game()
 
-
-###########
-    # print('pot = ',game.get_pot_from_screen())
-    # assert 1==6
-    # screen = pyautogui.screenshot(path.join(HERE, 'data', 'screenshots', 'screenshot.png'), region=(900, 330, 400, 50))
-    # pot = pyautogui.locateOnScreen(path.join(HERE, 'data', 'signs', 'pot.png'),
-    #                                   confidence=0.95,
-    #                                   region=(900, 330, 400, 50),
-    #                                   grayscale=False)
-    # print('pot = ', pot)
-    #
-    # screen = pyautogui.screenshot(path.join(HERE, 'data', 'screenshots', 'temp.png'),
-    #                               region=(pot[0] + pot[2], pot[1], pot[2] + 300, pot[3]))
-    # assert 1==4
-
-
-    # screen = pyautogui.screenshot(path.join(HERE, 'data', 'screenshots', 'screenshot.png'), region=(1110, 629, 270, 23))
-    # sys.exit('hh')
-##########
-    # print('folded = ', screen.get_folded_players())
+####
+    # street = 'test1'
+    # setup_logger(street, path.join(HERE, 'logs', f'{street}.log'))
+    # logger.debug('test1')
+    # street = 'test2'
+    # setup_logger(street, path.join(HERE, 'logs', f'{street}.log'))
+    # logger.debug('test2')
     # sys.exit('g')
-    # is_first_round = True
-
-
+    # assert 1==4
+    ####
     previous_street = None
     n_round = None
 
@@ -841,7 +653,7 @@ if __name__ == '__main__':
                     game.set_decisions_all_players()
                 # game.set_first_round_sign(False)
 
-            # set up logging
+            # set up logger
             if street != previous_street:
                 setup_logger(street, path.join(HERE, 'logs', f'{street}.log'))
                 n_round = 1
