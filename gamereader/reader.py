@@ -430,6 +430,20 @@ class Game(object):
         return list(set(self.get_folded_players_all()) - set(self.get_folded_players_all_before_current_round()))
 
     def set_decisions_all_players(self):
+
+        def get_pot_for_player(player_id):
+            # only for
+            # button_position = self.get_button_position()
+            if player_id is not None:
+                player_id_list = [x for x in self.get_bets().keys() if x < 6 and x > player_id]
+                bets = [self.get_bets()[player_id] for player_id in player_id_list]
+
+                # self.get_full_pot() must return full pot without bets of current round
+                pot = self.get_full_pot() - sum(filter(lambda x: x is not None, bets))
+            else:
+                sys.exit('Game.get_pot_for_player_decision() player_id is None')
+            return pot
+
         # logging.debug('start set_decisions_after_BB')
 
         button_position = self.get_button_position()
@@ -452,10 +466,12 @@ class Game(object):
 
         for player_id in range(1, 6):
             logger.debug(f'set_decisions_all_players CYCLE player_id = {player_id}')
+            # logger.debug(f'set_decisions_all_players CYCLE bets[{player_id}] = {bets[player_id]}')
             logger.debug(f'set_decisions_all_players CYCLE previous_bet = {previous_bet}')
-            pot = self.get_pot_for_player_decision(player_id)
-            logger.debug(f'set_decisions_before_player CYCLE pot = {pot}')
+            pot = get_pot_for_player(player_id)
+            logger.debug(f'set_decisions_all_players CYCLE pot = {pot}')
             if player_id in folded_players_all_before_current_round:
+                logger.debug(f'set_decisions_all_players CYCLE player {player_id} NO DECISION because he folded before')
                 continue
             elif player_id in folded_players_current_round:
                 self.decisions[player_id] = 'FOLD'
@@ -573,27 +589,27 @@ class Game(object):
         current_street = self.get_current_street()
         button_position = self.get_button_position()
         bets = self.get_bets() # bets from current screen
-        previous_full_pot = self.get_previous_full_pot() # pot at the previous moment when we asked for pressing button with decision
+        # previous_full_pot = self.get_previous_full_pot() # pot at the previous moment when we asked for pressing button with decision
 
         #TODO temp check
-        if not previous_full_pot > 0:
-            sys.exit('calculate_decisions_after_changing_street previous_full_pot not more then 0')
+        # if not previous_full_pot > 0:
+        #     sys.exit('calculate_decisions_after_changing_street previous_full_pot not more then 0')
 
         full_pot = self.get_full_pot() # it is where we now see on screen: "pot: 123456789" when we asked for pressing button with decision
-        current_street_pot = self.__get_sum_bets(bets)
+        # current_street_pot = self.__get_sum_bets(bets)
 
-        if current_street == 'FLOP':
-            previous_full_pot = previous_full_pot - 2 * BLIND - BLIND + self.previous_bets[0]
+        # if current_street == 'FLOP':
+        #     previous_full_pot = previous_full_pot - 2 * BLIND - BLIND + self.previous_bets[0]
         # Site gets commission after changing street
-        pot_commission_value = self.__get_commission(full_pot, current_street_pot)
+        # pot_commission_value = self.__get_commission(full_pot, current_street_pot)
 
         # folded_players_all = self.get_folded_players_all() # all folded players that we see on a screen now
         folded_players_current_round = self.get_folded_players_current_round()
         folded_players_all_before_current_round = self.get_folded_players_all_before_current_round()
         folded_players_all_before_current_street = [x for x in folded_players_all_before_current_round]
 
-        pot_previous_street_current_screen = full_pot - current_street_pot - previous_full_pot + pot_commission_value# we dont see on screen bets of previous street that made after our previous decision
-        bet_previous_street_current_screen = self.get_previous_bets()[0]
+        # pot_previous_street_current_screen = full_pot - current_street_pot - previous_full_pot + pot_commission_value# we dont see on screen bets of previous street that made after our previous decision
+        # bet_previous_street_current_screen = self.get_previous_bets()[0]
 
         # we see folded player after button, he could fold this round or previous
         # we need to decide in which round he folded
@@ -602,13 +618,13 @@ class Game(object):
         logger.debug(f'set_decisions_after_changing_street folded_players_current_round = {folded_players_current_round}')
         logger.debug(f'set_decisions_after_changing_street folded_players_all_before_current_round = {folded_players_all_before_current_round}')
         logger.debug(f'set_decisions_after_changing_street bets = {bets}')
-        logger.debug(f'set_decisions_after_changing_street previous_full_pot = {previous_full_pot}')
+        # logger.debug(f'set_decisions_after_changing_street previous_full_pot = {previous_full_pot}')
         logger.debug(f'set_decisions_after_changing_street full_pot = {full_pot}')
-        logger.debug(f'set_decisions_after_changing_street current_street_pot = {current_street_pot}')
-        logger.debug(f'set_decisions_after_changing_street pot_previous_street_current_screen = {pot_previous_street_current_screen}')
-        logger.debug(f'set_decisions_after_changing_street bet_previous_street_current_screen = {bet_previous_street_current_screen}')
+        # logger.debug(f'set_decisions_after_changing_street current_street_pot = {current_street_pot}')
+        # logger.debug(f'set_decisions_after_changing_street pot_previous_street_current_screen = {pot_previous_street_current_screen}')
+        # logger.debug(f'set_decisions_after_changing_street bet_previous_street_current_screen = {bet_previous_street_current_screen}')
         logger.debug(f'set_decisions_after_changing_street folded_players_all_before_current_round = {folded_players_all_before_current_round}')
-        logger.debug(f'set_decisions_after_changing_street pot_commission_value = {pot_commission_value}')
+        # logger.debug(f'set_decisions_after_changing_street pot_commission_value = {pot_commission_value}')
         # logger.debug(f'calculate_decisions_after_changing_street folded_players = ', num_folded_players_previous_round_after_player)
 
         # PREVIOUS STREET of CURRENT SCREEN
@@ -643,38 +659,42 @@ class Game(object):
         # If not pot_previous_street_current_screen > 0 then all players of previous street CHECKED
         # If end_position != button_position + 1 then at least one player RAISED
         # If end_position > 1 then previous street of current screen is exist so this check is reasonable
-        if not pot_previous_street_current_screen > 0 and end_position != button_position + 1 and end_position > 1:
-            sys.exit(f'set_decisions_after_changing_street pot_previous_street_current_screen = {pot_previous_street_current_screen} and end_position = {end_position}')
+        # if not pot_previous_street_current_screen > 0 and end_position != button_position + 1 and end_position > 1:
+        #     sys.exit(f'set_decisions_after_changing_street pot_previous_street_current_screen = {pot_previous_street_current_screen} and end_position = {end_position}')
 
-        if pot_previous_street_current_screen > 0:
-
-            num_active_players_previous_street_current_screen = pot_previous_street_current_screen / bet_previous_street_current_screen
-            logger.debug(f'set_decisions_after_changing_street CYCLE num_active_players_previous_street_current_screen = {num_active_players_previous_street_current_screen}')
-
-            if num_active_players_previous_street_current_screen%1 >0.0001:
-                sys.exit('set_decisions_after_changing_street num_active_players_previous_street_current_screen must be integer')
+        # if pot_previous_street_current_screen > 0:
+        #
+        #     num_active_players_previous_street_current_screen = pot_previous_street_current_screen / bet_previous_street_current_screen
+        #     logger.debug(f'set_decisions_after_changing_street CYCLE num_active_players_previous_street_current_screen = {num_active_players_previous_street_current_screen}')
+        #
+        #     if num_active_players_previous_street_current_screen%1 >0.0001:
+        #         sys.exit('set_decisions_after_changing_street num_active_players_previous_street_current_screen must be integer')
             # (end_position - 1) = is full number of players of previous street after us (that is of current screen)
-            num_folded_players_previous_street_current_screen = end_position - 1 - num_active_players_previous_street_current_screen
+            # num_folded_players_previous_street_current_screen = end_position - 1 - num_active_players_previous_street_current_screen
 
         for player_id in range(1, end_position + 1):
             logger.debug(f'set_decisions_after_changing_street CYCLE player_id = {player_id}')
             logger.debug(f'set_decisions_after_changing_street CYCLE num_folded_players_previous_street_current_screen = {num_folded_players_previous_street_current_screen}')
             logger.debug(f'set_decisions_after_changing_street CYCLE folded_players_all_before_current_street = {folded_players_all_before_current_street}')
             if player_id in folded_players_all_before_current_round:
+                logger.debug(f'set_decisions_all_players CYCLE player {player_id} NO DECISION because he folded before')
                 continue
-            # below FOLD is defenitly in previous street
-            elif player_id in folded_players_current_round and player_id <= button_position:
-                num_folded_players_previous_street_current_screen -= 1
+            elif player_id in folded_players_current_round:
                 folded_players_all_before_current_street.append(player_id)
                 self.previous_decisions[player_id] = 'FOLD'
+            # below FOLD is defenitly in previous street
+            # elif player_id in folded_players_current_round and player_id <= button_position:
+            #     num_folded_players_previous_street_current_screen -= 1
+            #     folded_players_all_before_current_street.append(player_id)
+            #     self.previous_decisions[player_id] = 'FOLD'
             # below FOLD is that can be made both in previous and current street
             # we have to decide in which street FOLD is made
             # TODO if after button and before end_position two players were folded
             #  then we cant define which of them folded in previous street and which - in current
-            elif player_id in folded_players_current_round and player_id > button_position and player_id < end_position and num_folded_players_previous_street_current_screen > 0:
-                num_folded_players_previous_street_current_screen -= 1
-                folded_players_all_before_current_street.append(player_id)
-                self.previous_decisions[player_id] = 'FOLD'
+            # elif player_id in folded_players_current_round and player_id > button_position and player_id < end_position and num_folded_players_previous_street_current_screen > 0:
+            #     num_folded_players_previous_street_current_screen -= 1
+            #     folded_players_all_before_current_street.append(player_id)
+            #     self.previous_decisions[player_id] = 'FOLD'
             elif not pot_previous_street_current_screen > 0:
                 self.previous_decisions[player_id] = 'CHECK'
             elif current_street == 'FLOP' and player_id == (button_position + 2) % 6 and end_position == (button_position + 2) % 6:  # player on big blind on preflop
@@ -699,6 +719,7 @@ class Game(object):
             logger.debug(f'set_decisions_after_changing_street CYCLE pot = {pot}')
             logger.debug(f'set_decisions_after_changing_street CYCLE previous_bet = {previous_bet}')
             if player_id in folded_players_all_before_current_street:
+                logger.debug(f'set_decisions_all_players CYCLE player {player_id} NO DECISION because he folded before')
                 continue
             elif player_id in folded_players_current_round:
                 self.decisions[player_id] = 'FOLD'
