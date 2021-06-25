@@ -83,83 +83,66 @@ class Screen(object):
 
     def get_bets(self):
 
-        def check_no_chip(player_id):
-            # if return None then no chip in picture where we are going to find value of bet
-            # if return not None value then chip in picture, so we need to correct region to exclude chip
-            DELTA = 0
-            regions = {0: (1110 - DELTA, 629 - DELTA, 38 + 2 * DELTA, 23 + 2 * DELTA),
-                       1: (805 - DELTA, 568 - DELTA, 38 + 2 * DELTA, 23 + 2 * DELTA),
-                       2: (825 - DELTA, 349 - DELTA, 38 + 2 * DELTA, 23 + 2 * DELTA),
-                       3: (1240 - DELTA, 250 - DELTA, 38 + 2 * DELTA, 23 + 2 * DELTA),
-                       4: (1230 - DELTA, 313 - DELTA, 38 + 2 * DELTA, 23 + 2 * DELTA),
-                       5: (1270 - DELTA, 568 - DELTA, 38 + 2 * DELTA, 23 + 2 * DELTA)}
+        def get_shift(player_id):
+            # if no chip in picture where we are going to find value of bet then no shift is needed so return 0
+            # if chip in picture, so we need to correct region to exclude chip so return shift
+            WIDTH_CHIP = 39
+            def locate_no_chip(player_id, shift):
+                DELTA = 0
 
-            chip = pyautogui.screenshot(
-                path.join(HERE, 'data', 'screenshots', f'chip_{player_id}.png'),
-                region=regions[player_id]
-            )
+                regions = {0: (1110 + shift + DELTA, 629, WIDTH_CHIP, 23),
+                           1: (805 + shift + DELTA, 568, WIDTH_CHIP, 23),
+                           2: (825 + shift + DELTA, 349, WIDTH_CHIP, 23),
+                           3: (1239 + shift + DELTA, 250, WIDTH_CHIP, 23),
+                           4: (1230 + shift + DELTA, 313, WIDTH_CHIP, 23),
+                           5: (1270 + shift + DELTA, 568, WIDTH_CHIP, 23)}
 
-            chip = np.array(chip)
-            chip = cv2.cvtColor(chip, cv2.COLOR_BGR2GRAY)
-            threshold = 170
-            _, thresh = cv2.threshold(chip, threshold, 255, cv2.THRESH_BINARY)
-            # cv2.imshow('thresh',thresh)
-            # key = cv2.waitKey(0)
-            cv2.imwrite(path.join(HERE, 'data', 'screenshots', f'chip_{player_id}.png'), chip)
+                chip = pyautogui.screenshot(
+                    path.join(HERE, 'data', 'screenshots', f'chip_{player_id}.png'),
+                    region=regions[player_id]
+                )
 
-            no_chip = pyautogui.locate(path.join(HERE, 'data', 'signs', 'no_chip.png'),
-                                       path.join(HERE, 'data', 'screenshots', f'thresh_{player_id}.png'),
-                                       grayscale=True)
-            # print(f'!!! get_bets player_id = {player_id}')
-            # print(f'!!! get_bets no_chip = {no_chip}')
+                chip = np.array(chip)
+                chip = cv2.cvtColor(chip, cv2.COLOR_BGR2GRAY)
+                threshold = 170
+                _, thresh = cv2.threshold(chip, threshold, 255, cv2.THRESH_BINARY)
+                # cv2.imshow('thresh',thresh)
+                # key = cv2.waitKey(0)
+                cv2.imwrite(path.join(HERE, 'data', 'screenshots', f'chip_{player_id}.png'), chip)
 
-            return no_chip
+                no_chip = pyautogui.locate(path.join(HERE, 'data', 'signs', 'no_chip.png'),
+                                           path.join(HERE, 'data', 'screenshots', f'thresh_{player_id}.png'),
+                                           grayscale=True)
+
+                return no_chip
+
+            shift = 0
+            while True:
+                no_chip = locate_no_chip(player_id, shift)
+
+                if no_chip is None:
+                    break
+                else:
+                    shift += WIDTH_CHIP # width if chip
+
+            return shift
 
         DELTA = 0
         bets = {}
-        regions = {0: (1110 - DELTA, 629 - DELTA, 270 + 2 * DELTA, 23 + 2 * DELTA),
-                   1: (805 - DELTA, 568 - DELTA, 270 + 2 * DELTA, 23 + 2 * DELTA),
-                   2: (825 - DELTA, 349 - DELTA, 270 + 2 * DELTA, 23 + 2 * DELTA),
-                   3: (1240 - DELTA, 250 - DELTA, 270 + 2 * DELTA, 23 + 2 * DELTA),
-                   4: (1230 - DELTA, 313 - DELTA, 270 + 2 * DELTA, 23 + 2 * DELTA),
-                   5: (1270 - DELTA, 568 - DELTA, 270 + 2 * DELTA, 23 + 2 * DELTA)}
-######
-        import cv2
-        pyautogui.screenshot(
-            path.join(HERE, 'data', 'screenshots', f'!!! temp_screen.png'),
-        )
 
-        regions_1 = {0: (1110 - DELTA, 629 - DELTA, 38 + 2 * DELTA, 23 + 2 * DELTA),
-                     1: (805 - DELTA, 568 - DELTA, 38 + 2 * DELTA, 23 + 2 * DELTA),
-                     2: (825 - DELTA, 349 - DELTA, 38 + 2 * DELTA, 23 + 2 * DELTA),
-                     3: (1240 - DELTA, 250 - DELTA, 38 + 2 * DELTA, 23 + 2 * DELTA),
-                     4: (1230 - DELTA, 313 - DELTA, 38 + 2 * DELTA, 23 + 2 * DELTA),
-                     5: (1270 - DELTA, 568 - DELTA, 38 + 2 * DELTA, 23 + 2 * DELTA)}
 
         for player_id in regions.keys():
-            temp_screen = pyautogui.screenshot(
-                path.join(HERE, 'data', 'screenshots', f'!!! temp_screen_{player_id}.png'), region=regions_1[player_id]
-            )
 
-            temp_screen = np.array(temp_screen)
-            gray = cv2.cvtColor(temp_screen, cv2.COLOR_BGR2GRAY)
-            # blur = closing
-            threshold = 170
-            _, thresh = cv2.threshold(gray, threshold, 255, cv2.THRESH_BINARY)
-            # cv2.imshow('thresh',thresh)
-            # key = cv2.waitKey(0)
-            cv2.imwrite(path.join(HERE, 'data', 'screenshots', f'thresh_{player_id}.png'), thresh)
-            no_chip = pyautogui.locate(path.join(HERE, 'data', 'signs', 'no_chip.png'),
-                                       path.join(HERE, 'data', 'screenshots', f'thresh_{player_id}.png'),
-                                       grayscale=True)
-            print(f'!!! get_bets player_id = {player_id}')
-            print(f'!!! get_bets no_chip = {no_chip}')
+            shift = get_shift(player_id)
+            regions = {0: (1110 + shift - DELTA, 629 - DELTA, 270 + 2 * DELTA, 23 + 2 * DELTA),
+                       1: (805 + shift - DELTA, 568 - DELTA, 270 + 2 * DELTA, 23 + 2 * DELTA),
+                       2: (825 + shift - DELTA, 349 - DELTA, 270 + 2 * DELTA, 23 + 2 * DELTA),
+                       3: (1239 + shift - DELTA, 250 - DELTA, 270 + 2 * DELTA, 23 + 2 * DELTA),
+                       4: (1230 - shift - DELTA, 313 - DELTA, 270 + 2 * DELTA, 23 + 2 * DELTA),
+                       5: (1270 - shift - DELTA, 568 - DELTA, 270 + 2 * DELTA, 23 + 2 * DELTA)}
 
-        assert 1==2
-#######
-        for player_id in regions.keys():
             bet_screen_PIL = pyautogui.screenshot(
-                path.join(HERE, 'data', 'screenshots', f'bet_screen_{player_id}.png'),
+                path.join(HERE, 'data', 'screenshots', f'bet_screen_{player_id}_{datetime.now().timestamp()}.png'),
                 region=regions[player_id]
             )
             # convert PIL image to opencv format
