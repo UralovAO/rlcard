@@ -82,6 +82,39 @@ class Screen(object):
             return button_position
 
     def get_bets(self):
+
+        def check_no_chip(player_id):
+            # if return None then no chip in picture where we are going to find value of bet
+            # if return not None value then chip in picture, so we need to correct region to exclude chip
+            DELTA = 0
+            regions = {0: (1110 - DELTA, 629 - DELTA, 38 + 2 * DELTA, 23 + 2 * DELTA),
+                       1: (805 - DELTA, 568 - DELTA, 38 + 2 * DELTA, 23 + 2 * DELTA),
+                       2: (825 - DELTA, 349 - DELTA, 38 + 2 * DELTA, 23 + 2 * DELTA),
+                       3: (1240 - DELTA, 250 - DELTA, 38 + 2 * DELTA, 23 + 2 * DELTA),
+                       4: (1230 - DELTA, 313 - DELTA, 38 + 2 * DELTA, 23 + 2 * DELTA),
+                       5: (1270 - DELTA, 568 - DELTA, 38 + 2 * DELTA, 23 + 2 * DELTA)}
+
+            chip = pyautogui.screenshot(
+                path.join(HERE, 'data', 'screenshots', f'chip_{player_id}.png'),
+                region=regions[player_id]
+            )
+
+            chip = np.array(chip)
+            chip = cv2.cvtColor(chip, cv2.COLOR_BGR2GRAY)
+            threshold = 170
+            _, thresh = cv2.threshold(chip, threshold, 255, cv2.THRESH_BINARY)
+            # cv2.imshow('thresh',thresh)
+            # key = cv2.waitKey(0)
+            cv2.imwrite(path.join(HERE, 'data', 'screenshots', f'chip_{player_id}.png'), chip)
+
+            no_chip = pyautogui.locate(path.join(HERE, 'data', 'signs', 'no_chip.png'),
+                                       path.join(HERE, 'data', 'screenshots', f'thresh_{player_id}.png'),
+                                       grayscale=True)
+            # print(f'!!! get_bets player_id = {player_id}')
+            # print(f'!!! get_bets no_chip = {no_chip}')
+
+            return no_chip
+
         DELTA = 0
         bets = {}
         regions = {0: (1110 - DELTA, 629 - DELTA, 270 + 2 * DELTA, 23 + 2 * DELTA),
@@ -90,7 +123,40 @@ class Screen(object):
                    3: (1240 - DELTA, 250 - DELTA, 270 + 2 * DELTA, 23 + 2 * DELTA),
                    4: (1230 - DELTA, 313 - DELTA, 270 + 2 * DELTA, 23 + 2 * DELTA),
                    5: (1270 - DELTA, 568 - DELTA, 270 + 2 * DELTA, 23 + 2 * DELTA)}
+######
+        import cv2
+        pyautogui.screenshot(
+            path.join(HERE, 'data', 'screenshots', f'!!! temp_screen.png'),
+        )
 
+        regions_1 = {0: (1110 - DELTA, 629 - DELTA, 38 + 2 * DELTA, 23 + 2 * DELTA),
+                     1: (805 - DELTA, 568 - DELTA, 38 + 2 * DELTA, 23 + 2 * DELTA),
+                     2: (825 - DELTA, 349 - DELTA, 38 + 2 * DELTA, 23 + 2 * DELTA),
+                     3: (1240 - DELTA, 250 - DELTA, 38 + 2 * DELTA, 23 + 2 * DELTA),
+                     4: (1230 - DELTA, 313 - DELTA, 38 + 2 * DELTA, 23 + 2 * DELTA),
+                     5: (1270 - DELTA, 568 - DELTA, 38 + 2 * DELTA, 23 + 2 * DELTA)}
+
+        for player_id in regions.keys():
+            temp_screen = pyautogui.screenshot(
+                path.join(HERE, 'data', 'screenshots', f'!!! temp_screen_{player_id}.png'), region=regions_1[player_id]
+            )
+
+            temp_screen = np.array(temp_screen)
+            gray = cv2.cvtColor(temp_screen, cv2.COLOR_BGR2GRAY)
+            # blur = closing
+            threshold = 170
+            _, thresh = cv2.threshold(gray, threshold, 255, cv2.THRESH_BINARY)
+            # cv2.imshow('thresh',thresh)
+            # key = cv2.waitKey(0)
+            cv2.imwrite(path.join(HERE, 'data', 'screenshots', f'thresh_{player_id}.png'), thresh)
+            no_chip = pyautogui.locate(path.join(HERE, 'data', 'signs', 'no_chip.png'),
+                                       path.join(HERE, 'data', 'screenshots', f'thresh_{player_id}.png'),
+                                       grayscale=True)
+            print(f'!!! get_bets player_id = {player_id}')
+            print(f'!!! get_bets no_chip = {no_chip}')
+
+        assert 1==2
+#######
         for player_id in regions.keys():
             bet_screen_PIL = pyautogui.screenshot(
                 path.join(HERE, 'data', 'screenshots', f'bet_screen_{player_id}.png'),
@@ -756,7 +822,7 @@ class Game(object):
 
 
 if __name__ == '__main__':
-    time.sleep(6)
+    time.sleep(3)
 
     screen = Screen()
     screen.set_work_position()
@@ -775,6 +841,8 @@ if __name__ == '__main__':
     ####
     previous_street = None
     n_round = None
+
+    game.set_bets()
 
     while True:
         if game.wait_for_bet_button(): # waiting for other players finishes placing their bets if necessary
