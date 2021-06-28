@@ -83,10 +83,12 @@ class Screen(object):
 
     def get_bets(self):
 
-        def get_shift(player_id):
+        def get_shift(player_id, timestamp):
             # if no chip in picture where we are going to find value of bet then no shift is needed so return 0
             # if chip in picture, so we need to correct region to exclude chip so return shift
             WIDTH_CHIP = 39
+            logger.debug(' ')
+            logger.debug(f'get_shift player_id={player_id} timestamp={timestamp}')
             def locate_no_chip(player_id, shift):
                 DELTA = 0
 
@@ -98,42 +100,58 @@ class Screen(object):
                            5: (1270 + shift + DELTA, 568, WIDTH_CHIP, 23)}
 
                 chip = pyautogui.screenshot(
-                    path.join(HERE, 'data', 'screenshots', f'chip_{player_id}.png'),
+                    path.join(HERE, 'data', 'screenshots', f'bet_screen_{player_id}_{timestamp}_locate_no_chip.png'),
                     region=regions[player_id]
                 )
 
                 chip = np.array(chip)
                 chip = cv2.cvtColor(chip, cv2.COLOR_BGR2GRAY)
-                threshold = 170
-                _, thresh = cv2.threshold(chip, threshold, 255, cv2.THRESH_BINARY)
-                # cv2.imshow('thresh',thresh)
+                threshold = 100
+                _, chip = cv2.threshold(chip, threshold, 255, cv2.THRESH_BINARY)
+                # cv2.imshow('chip',chip)
                 # key = cv2.waitKey(0)
-                cv2.imwrite(path.join(HERE, 'data', 'screenshots', f'chip_{player_id}.png'), chip)
-
+                cv2.imwrite(path.join(HERE, 'data', 'screenshots', f'bet_screen_{player_id}_{timestamp}_locate_no_chip_CV2.png'), chip)
                 no_chip = pyautogui.locate(path.join(HERE, 'data', 'signs', 'no_chip.png'),
-                                           path.join(HERE, 'data', 'screenshots', f'thresh_{player_id}.png'),
-                                           grayscale=True)
+                                           path.join(HERE, 'data', 'screenshots', f'bet_screen_{player_id}_{timestamp}_locate_no_chip_CV2.png'),
+                                           grayscale=False)
 
                 return no_chip
 
             shift = 0
             while True:
-                no_chip = locate_no_chip(player_id, shift)
+                logger.debug(f'cycle shift={shift}')
 
-                if no_chip is None:
+                no_chip = locate_no_chip(player_id, shift)
+                logger.debug(f'cycle no_chip={no_chip}')
+                # print(f'!!! no_chip = {no_chip}, player_id = {player_id}')
+                if no_chip is not None:
                     break
                 else:
                     shift += WIDTH_CHIP # width if chip
 
+            logger.debug(f'get_shift shift ={shift}')
+            logger.debug(' ')
             return shift
 
         DELTA = 0
         bets = {}
 
+        regions_default = {0: (1110 - DELTA, 629 - DELTA, 270 + 2 * DELTA, 23 + 2 * DELTA),
+                           1: (805 - DELTA, 568 - DELTA, 270 + 2 * DELTA, 23 + 2 * DELTA),
+                           2: (825 - DELTA, 349 - DELTA, 270 + 2 * DELTA, 23 + 2 * DELTA),
+                           3: (1239 - DELTA, 250 - DELTA, 270 + 2 * DELTA, 23 + 2 * DELTA),
+                           4: (1230 - DELTA, 313 - DELTA, 270 + 2 * DELTA, 23 + 2 * DELTA),
+                           5: (1270 - DELTA, 568 - DELTA, 270 + 2 * DELTA, 23 + 2 * DELTA)}
 
-        for player_id in regions.keys():
+        for player_id in range(0, 6):
 
-            shift = get_shift(player_id)
+            timestamp = datetime.now().timestamp()
+            pyautogui.screenshot(
+                path.join(HERE, 'data', 'screenshots', f'bet_screen_{player_id}_{timestamp}.png'),
+                region=regions_default[player_id]
+            )
+
+            shift = get_shift(player_id, timestamp)
             regions = {0: (1110 + shift - DELTA, 629 - DELTA, 270 + 2 * DELTA, 23 + 2 * DELTA),
                        1: (805 + shift - DELTA, 568 - DELTA, 270 + 2 * DELTA, 23 + 2 * DELTA),
                        2: (825 + shift - DELTA, 349 - DELTA, 270 + 2 * DELTA, 23 + 2 * DELTA),
@@ -142,13 +160,16 @@ class Screen(object):
                        5: (1270 - shift - DELTA, 568 - DELTA, 270 + 2 * DELTA, 23 + 2 * DELTA)}
 
             bet_screen_PIL = pyautogui.screenshot(
-                path.join(HERE, 'data', 'screenshots', f'bet_screen_{player_id}_{datetime.now().timestamp()}.png'),
+                path.join(HERE, 'data', 'screenshots', f'bet_screen_{player_id}_{timestamp}_{shift}.png'),
                 region=regions[player_id]
             )
             # convert PIL image to opencv format
             bet_screen_CV = np.array(bet_screen_PIL)
             # cv2.imwrite(f'bet_screen_CV{player_id}.png', bet_screen_CV)
-            bets[player_id] = ocr_digits.get_number(bet_screen_CV)
+            bet = ocr_digits.get_number(bet_screen_CV)
+            if bet is None:
+                bet = 0
+            bets[player_id] = bet
 
         return bets
 
@@ -283,6 +304,11 @@ class Game(object):
 
         # clear previous logs
         filelist = [f for f in glob(path.join(HERE, 'logs', '*.*'))]
+        for f in filelist:
+            remove(f)
+
+        # clear previous screenshots
+        filelist = [f for f in glob(path.join(HERE, 'data', 'screenshots', '*.*'))]
         for f in filelist:
             remove(f)
 
@@ -506,6 +532,8 @@ class Game(object):
         # self.decisions = {} # TODO
 
         previous_bet = self.get_previous_bets()[0]
+        # if previous_bet is None:
+        #     previous_bet = 0
         # is_previous_allin = False
         logger.debug(f'set_decisions_all_players button_position = {button_position}')
         logger.debug(f'set_decisions_all_players bets = {bets}')
@@ -723,7 +751,7 @@ class Game(object):
 
         for player_id in range(1, end_position + 1):
             logger.debug(f'set_decisions_after_changing_street CYCLE player_id = {player_id}')
-            logger.debug(f'set_decisions_after_changing_street CYCLE num_folded_players_previous_street_current_screen = {num_folded_players_previous_street_current_screen}')
+            # logger.debug(f'set_decisions_after_changing_street CYCLE num_folded_players_previous_street_current_screen = {num_folded_players_previous_street_current_screen}')
             logger.debug(f'set_decisions_after_changing_street CYCLE folded_players_all_before_current_street = {folded_players_all_before_current_street}')
             if player_id in folded_players_all_before_current_round:
                 logger.debug(f'set_decisions_all_players CYCLE player {player_id} NO DECISION because he folded before')
@@ -744,8 +772,10 @@ class Game(object):
             #     num_folded_players_previous_street_current_screen -= 1
             #     folded_players_all_before_current_street.append(player_id)
             #     self.previous_decisions[player_id] = 'FOLD'
-            elif not pot_previous_street_current_screen > 0:
+            elif self.previous_bets[0] is None:
                 self.previous_decisions[player_id] = 'CHECK'
+            # elif not pot_previous_street_current_screen > 0:
+            #     self.previous_decisions[player_id] = 'CHECK'
             elif current_street == 'FLOP' and player_id == (button_position + 2) % 6 and end_position == (button_position + 2) % 6:  # player on big blind on preflop
                 self.previous_decisions[player_id] = 'CHECK'
             else:
@@ -805,14 +835,75 @@ class Game(object):
 
 
 if __name__ == '__main__':
-    time.sleep(3)
+
+    ####
+
+    # no_chip = pyautogui.locate(path.join(HERE, 'data', 'signs', 'no_chip_1.png'),
+    #                            path.join(HERE, 'data', 'screenshots',
+    #                                      'bet_screen_1_1624813324.157915_locate_no_chip_CV2.png'),
+    #                            grayscale=False)
+    # print('no_chip = ', no_chip)
+    # assert 1==6
+    #####
+    # time.sleep(5)
+    # screen = Screen()
+    # screen.set_work_position()
+    # time.sleep(1)
+    # pyautogui.screenshot(
+    #     path.join(HERE, 'data', 'screenshots', f'1.png')
+    # )
+
+    # Read the images from the file
+    small_image = cv2.imread(path.join(HERE, 'data', 'signs', 'no_chip.png'))
+    # small_image = cv2.imread(path.join(HERE, 'data', 'signs', 'button.png'))
+    # small_image = cv2.cvtColor(small_image, cv2.COLOR_BGR2GRAY)
+    large_image = cv2.imread(
+        path.join(HERE, 'data', 'screenshots', 'bet_screen_1_1624813324.157915_locate_no_chip_CV2.png'))
+    # large_image = cv2.imread(
+    #     path.join(HERE, 'data', 'screenshots', 'bet_screen_0_1624813323.926711_locate_no_chip_CV2.png'))
+    #
+    # large_image = cv2.imread(
+    #     path.join(HERE, 'data', 'screenshots', 'bet_screen_0_1624813362.09999_locate_no_chip_CV2.png'))
+    # large_image = cv2.cvtColor(large_image, cv2.COLOR_BGR2GRAY)
+
+    # large_image = cv2.imread(path.join(HERE, 'data', 'screenshots', '1.png'))
+
+    # large_image = small_image
+    cv2.imshow('small_image', small_image)
+    key = cv2.waitKey(0)
+
+    cv2.imshow('large_image', large_image)
+    key = cv2.waitKey(0)
+    method = cv2.TM_SQDIFF
+    # method = cv2.TM_SQDIFF_NORMED
+    # method = cv2.TM_CCORR_NORMED
+    result = cv2.matchTemplate(small_image, large_image, method)
+
+    # We want the minimum squared difference
+    minVal, maxVal, minLoc, maxLoc = cv2.minMaxLoc(result)
+    # Draw the rectangle:
+    # Extract the coordinates of our best match
+    MPx, MPy = minLoc
+
+    print('small_image.shape = ', small_image.shape)
+    print('large_image.shape = ', large_image.shape)
+    print('minVal = ', minVal)
+    print('maxVal = ', maxVal)
+    print('maxLoc = ', maxLoc)
+    print('minLoc = ', minLoc)
+    assert 1 == 7
+    #####
+
+    assert 1 == 3
+
+    time.sleep(5)
 
     screen = Screen()
     screen.set_work_position()
 
     game = Game()
 
-####
+
     # street = 'test1'
     # setup_logger(street, path.join(HERE, 'logs', f'{street}.log'))
     # logger.debug(f'test1')
@@ -825,24 +916,13 @@ if __name__ == '__main__':
     previous_street = None
     n_round = None
 
-    game.set_bets()
+    # game.set_bets()
 
     while True:
         if game.wait_for_bet_button(): # waiting for other players finishes placing their bets if necessary
 
-            # read game data from screen
             game.set_community_cards()
-            game.set_player_cards()
             game.set_current_street()
-            game.set_button_position()
-            game.set_bets()
-            game.set_folded_players_all()
-            game.set_full_pot()
-            # print('!!! 1 game.full_pot = ',game.full_pot)
-
-            game.clear_decisions()
-            # game.set_previous_decisions()
-            # game.set_current_decisions()
 
             street = game.get_current_street()
             # print('!!! 2 game.full_pot = ', game.full_pot)
@@ -856,6 +936,21 @@ if __name__ == '__main__':
                 n_round = 1
             else:
                 n_round += 1
+
+            # read game data from screen
+
+            game.set_player_cards()
+            game.set_button_position()
+            game.set_bets()
+            game.set_folded_players_all()
+            game.set_full_pot()
+            # print('!!! 1 game.full_pot = ',game.full_pot)
+
+            game.clear_decisions()
+            # game.set_previous_decisions()
+            # game.set_current_decisions()
+
+
 
             screen = pyautogui.screenshot(path.join(HERE, 'logs', f'{street}_{n_round}.png'))
 
