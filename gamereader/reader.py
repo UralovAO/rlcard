@@ -89,42 +89,60 @@ class Screen(object):
             WIDTH_CHIP = 39
             logger.debug(' ')
             logger.debug(f'get_shift player_id={player_id} timestamp={timestamp}')
-            def locate_no_chip(player_id, shift):
+            def locate_chip(player_id, shift):
                 DELTA = 0
 
                 regions = {0: (1110 + shift + DELTA, 629, WIDTH_CHIP, 23),
                            1: (805 + shift + DELTA, 568, WIDTH_CHIP, 23),
                            2: (825 + shift + DELTA, 349, WIDTH_CHIP, 23),
                            3: (1239 + shift + DELTA, 250, WIDTH_CHIP, 23),
-                           4: (1230 + shift + DELTA, 313, WIDTH_CHIP, 23),
-                           5: (1270 + shift + DELTA, 568, WIDTH_CHIP, 23)}
+                           4: (1230 + 270 - shift - WIDTH_CHIP + DELTA, 313, WIDTH_CHIP, 23),
+                           5: (1270 + 270 - shift - WIDTH_CHIP + DELTA, 568, WIDTH_CHIP, 23)}
 
-                chip = pyautogui.screenshot(
+                large_image = pyautogui.screenshot(
                     path.join(HERE, 'data', 'screenshots', f'bet_screen_{player_id}_{timestamp}_locate_no_chip.png'),
                     region=regions[player_id]
                 )
 
-                chip = np.array(chip)
-                chip = cv2.cvtColor(chip, cv2.COLOR_BGR2GRAY)
-                threshold = 100
-                _, chip = cv2.threshold(chip, threshold, 255, cv2.THRESH_BINARY)
+                large_image = np.array(large_image)
+                large_image = cv2.cvtColor(large_image, cv2.COLOR_BGR2GRAY)
+                threshold = 80
+                _, large_image = cv2.threshold(large_image, threshold, 255, cv2.THRESH_BINARY)
                 # cv2.imshow('chip',chip)
                 # key = cv2.waitKey(0)
-                cv2.imwrite(path.join(HERE, 'data', 'screenshots', f'bet_screen_{player_id}_{timestamp}_locate_no_chip_CV2.png'), chip)
-                no_chip = pyautogui.locate(path.join(HERE, 'data', 'signs', 'no_chip.png'),
-                                           path.join(HERE, 'data', 'screenshots', f'bet_screen_{player_id}_{timestamp}_locate_no_chip_CV2.png'),
-                                           grayscale=False)
+                cv2.imwrite(path.join(HERE, 'data', 'screenshots', f'bet_screen_{player_id}_{timestamp}_locate_no_chip_CV2.png'), large_image)
+                # no_chip = pyautogui.locate(path.join(HERE, 'data', 'signs', 'no_chip.png'),
+                #                            path.join(HERE, 'data', 'screenshots', f'bet_screen_{player_id}_{timestamp}_locate_no_chip_CV2.png'),
+                #                            grayscale=False)
 
-                return no_chip
+###
+                # cv2.imshow('large_image', large_image)
+                # key = cv2.waitKey(0)
+                small_image = cv2.imread(path.join(HERE, 'data', 'signs', 'no_chip.png'))
+                small_image = cv2.cvtColor(small_image, cv2.COLOR_BGR2GRAY)
+                # cv2.imshow('small_image', small_image)
+                # key = cv2.waitKey(0)
+
+                result = cv2.matchTemplate(small_image,
+                                           large_image,
+                                           cv2.TM_SQDIFF
+                                           )
+
+                min_val, _, min_loc, _ = cv2.minMaxLoc(result)
+
+                if min_val == 0: # we didnt find chip
+                    return False
+                else:
+                    return True
 
             shift = 0
             while True:
                 logger.debug(f'cycle shift={shift}')
 
-                no_chip = locate_no_chip(player_id, shift)
-                logger.debug(f'cycle no_chip={no_chip}')
+                is_chip = locate_chip(player_id, shift)
+                logger.debug(f'cycle is_chip={is_chip}')
                 # print(f'!!! no_chip = {no_chip}, player_id = {player_id}')
-                if no_chip is not None:
+                if not is_chip: # no chip - no shift
                     break
                 else:
                     shift += WIDTH_CHIP # width if chip
@@ -510,7 +528,7 @@ class Game(object):
             # only for
             # button_position = self.get_button_position()
             if player_id is not None:
-                player_id_list = [x for x in self.get_bets().keys() if x < 6 and x > player_id]
+                player_id_list = [x for x in self.get_bets().keys() if x < 6 and x >= player_id]
                 bets = [self.get_bets()[player_id] for player_id in player_id_list]
 
                 # self.get_full_pot() must return full pot without bets of current round
@@ -552,7 +570,7 @@ class Game(object):
                 continue
             elif player_id in folded_players_current_round:
                 self.decisions[player_id] = 'FOLD'
-            elif bets[player_id] is None:
+            elif bets[player_id] == 0:
                 self.decisions[player_id] = 'CHECK'
             elif self.decisions is not None and 'ALL_IN' in list(self.decisions.values()):
             # elif is_previous_allin  == True:
@@ -626,7 +644,7 @@ class Game(object):
             logger.debug(f'set_decisions_first_round CYCLE pot = {pot}')
             if player_id in folded_players_current_round:
                 self.decisions[player_id] = 'FOLD'
-            elif bets[player_id] is None:
+            elif bets[player_id] == 0:
                 self.decisions[player_id] = 'CHECK'
             elif self.decisions is not None and 'ALL_IN' in list(self.decisions.values()):
                 self.decisions[player_id] = 'CALL'
@@ -772,7 +790,7 @@ class Game(object):
             #     num_folded_players_previous_street_current_screen -= 1
             #     folded_players_all_before_current_street.append(player_id)
             #     self.previous_decisions[player_id] = 'FOLD'
-            elif self.previous_bets[0] is None:
+            elif self.previous_bets[0] == 0:
                 self.previous_decisions[player_id] = 'CHECK'
             # elif not pot_previous_street_current_screen > 0:
             #     self.previous_decisions[player_id] = 'CHECK'
@@ -787,7 +805,7 @@ class Game(object):
         logger.debug(f'set_decisions_after_changing_street CURRENT ROUND')
         start_position = (button_position + 1) % 6
         logger.debug(f'set_decisions_after_changing_street start_position = {start_position}')
-        if start_position == 0:
+        if start_position == 0: # we are the first player to make decision in current round, so no players made decision
             return
 
         previous_bet = 0
@@ -802,7 +820,7 @@ class Game(object):
                 continue
             elif player_id in folded_players_current_round:
                 self.decisions[player_id] = 'FOLD'
-            elif bets[player_id] is None:
+            elif bets[player_id] == 0:
                 self.decisions[player_id] = 'CHECK'
             elif self.decisions is not None and 'ALL_IN' in list(self.decisions.values()):
                 self.decisions[player_id] = 'CALL'
@@ -854,11 +872,11 @@ if __name__ == '__main__':
     # )
 
     # Read the images from the file
-    small_image = cv2.imread(path.join(HERE, 'data', 'signs', 'no_chip.png'))
+    # small_image = cv2.imread(path.join(HERE, 'data', 'signs', 'no_chip.png'))
     # small_image = cv2.imread(path.join(HERE, 'data', 'signs', 'button.png'))
     # small_image = cv2.cvtColor(small_image, cv2.COLOR_BGR2GRAY)
-    large_image = cv2.imread(
-        path.join(HERE, 'data', 'screenshots', 'bet_screen_1_1624813324.157915_locate_no_chip_CV2.png'))
+    # large_image = cv2.imread(
+    #     path.join(HERE, 'data', 'screenshots', 'bet_screen_1_1624813324.157915_locate_no_chip_CV2.png'))
     # large_image = cv2.imread(
     #     path.join(HERE, 'data', 'screenshots', 'bet_screen_0_1624813323.926711_locate_no_chip_CV2.png'))
     #
@@ -869,32 +887,32 @@ if __name__ == '__main__':
     # large_image = cv2.imread(path.join(HERE, 'data', 'screenshots', '1.png'))
 
     # large_image = small_image
-    cv2.imshow('small_image', small_image)
-    key = cv2.waitKey(0)
-
-    cv2.imshow('large_image', large_image)
-    key = cv2.waitKey(0)
-    method = cv2.TM_SQDIFF
+    # cv2.imshow('small_image', small_image)
+    # key = cv2.waitKey(0)
+    #
+    # cv2.imshow('large_image', large_image)
+    # key = cv2.waitKey(0)
+    # method = cv2.TM_SQDIFF
     # method = cv2.TM_SQDIFF_NORMED
     # method = cv2.TM_CCORR_NORMED
-    result = cv2.matchTemplate(small_image, large_image, method)
+    # result = cv2.matchTemplate(small_image, large_image, method)
 
     # We want the minimum squared difference
-    minVal, maxVal, minLoc, maxLoc = cv2.minMaxLoc(result)
+    # minVal, maxVal, minLoc, maxLoc = cv2.minMaxLoc(result)
     # Draw the rectangle:
     # Extract the coordinates of our best match
-    MPx, MPy = minLoc
+    # MPx, MPy = minLoc
 
-    print('small_image.shape = ', small_image.shape)
-    print('large_image.shape = ', large_image.shape)
-    print('minVal = ', minVal)
-    print('maxVal = ', maxVal)
-    print('maxLoc = ', maxLoc)
-    print('minLoc = ', minLoc)
-    assert 1 == 7
+    # print('small_image.shape = ', small_image.shape)
+    # print('large_image.shape = ', large_image.shape)
+    # print('minVal = ', minVal)
+    # print('maxVal = ', maxVal)
+    # print('maxLoc = ', maxLoc)
+    # print('minLoc = ', minLoc)
+    # assert 1 == 7
     #####
 
-    assert 1 == 3
+    # assert 1 == 3
 
     time.sleep(5)
 
