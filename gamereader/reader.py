@@ -963,15 +963,15 @@ if __name__ == '__main__':
             game.set_community_cards()
             game.set_current_street()
 
-            street = game.get_current_street()
+            current_street = game.get_current_street()
             # print('!!! 2 game.full_pot = ', game.full_pot)
-            if street == 'PREFLOP' and previous_street != 'PREFLOP':
+            if current_street == 'PREFLOP' and previous_street != 'PREFLOP':
                 print('GAME IS STARTED!')
                 game.start()
 
             # set up logger
             if street != previous_street:
-                setup_logger(street, path.join(HERE, 'logs', f'{street}.log'))
+                setup_logger(street, path.join(HERE, 'logs', f'{current_street}.log'))
                 n_round = 1
             else:
                 n_round += 1
@@ -985,25 +985,25 @@ if __name__ == '__main__':
             game.set_full_pot()
             # print('!!! 1 game.full_pot = ',game.full_pot)
 
-            game.clear_decisions()
+            # game.clear_decisions()
             # game.set_previous_decisions()
             # game.set_current_decisions()
 
 
 
-            screen = pyautogui.screenshot(path.join(HERE, 'logs', f'{street}_{n_round}.png'))
+            screen = pyautogui.screenshot(path.join(HERE, 'logs', f'{current_street}_{n_round}.png'))
 
-            logger.debug(f'current street {street}')
+            logger.debug(f'current street {current_street}')
             logger.debug(f'previous street {previous_street}')
             logger.debug(f'round = {n_round}')
             print(street)
             print('round = ', n_round)
             # print('!!! 3 game.full_pot = ', game.full_pot)
 
-            if street == 'PREFLOP' and previous_street != 'PREFLOP':
+            if current_street == 'PREFLOP' and previous_street != 'PREFLOP':
                 game.set_decisions_first_round()
             else:
-                if street != previous_street:
+                if current_street != previous_street:
                     game.set_decisions_after_changing_street()
                 else:
                     game.set_decisions_all_players()
@@ -1011,7 +1011,14 @@ if __name__ == '__main__':
             # we gave data to model
             # model gave us back answer
             # temp answer is CALL
-            game.set_decision_current_street(PLAYER, 'CALL')
+            button = game.get_button_position()
+            if current_street == 'PREFLOP' and n_round == 1 and (button + 2) % 6 == 0
+                game.set_decision_current_street(PLAYER, 'CHECK')
+            elif (button + 1) % 6 == 0:
+                game.set_decision_current_street(PLAYER, 'CHECK')
+            else:
+                game.set_decision_current_street(PLAYER, 'CALL')
+
             game.set_bet_by_decision()
 
             # save data of this round for using it in next round
