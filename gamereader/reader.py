@@ -95,8 +95,8 @@ class Screen(object):
                 regions = {0: (1110 + shift + DELTA, 629, WIDTH_CHIP, 23),
                            1: (805 + shift + DELTA, 568, WIDTH_CHIP, 23),
                            2: (822 + shift + DELTA, 349, WIDTH_CHIP, 23),
-                           3: (1239 + shift + DELTA, 250, WIDTH_CHIP, 23),
-                           4: (1230 + 270 - shift - WIDTH_CHIP + DELTA, 313, WIDTH_CHIP, 23),
+                           3: (1239 + shift + DELTA, 249, WIDTH_CHIP, 23),
+                           4: (1231 + 270 - shift - WIDTH_CHIP + DELTA, 313, WIDTH_CHIP, 23),
                            5: (1270 + 270 - shift - WIDTH_CHIP + DELTA, 568, WIDTH_CHIP, 23)}
 
                 large_image = pyautogui.screenshot(
@@ -157,8 +157,8 @@ class Screen(object):
         regions_default = {0: (1110 - DELTA, 629 - DELTA, 270 + 2 * DELTA, 23 + 2 * DELTA),
                            1: (805 - DELTA, 568 - DELTA, 270 + 2 * DELTA, 23 + 2 * DELTA),
                            2: (822 - DELTA, 349 - DELTA, 270 + 2 * DELTA, 23 + 2 * DELTA),
-                           3: (1239 - DELTA, 250 - DELTA, 270 + 2 * DELTA, 23 + 2 * DELTA),
-                           4: (1230 - DELTA, 313 - DELTA, 270 + 2 * DELTA, 23 + 2 * DELTA),
+                           3: (1239 - DELTA, 249 - DELTA, 270 + 2 * DELTA, 23 + 2 * DELTA),
+                           4: (1231 - DELTA, 313 - DELTA, 270 + 2 * DELTA, 23 + 2 * DELTA),
                            5: (1270 - DELTA, 568 - DELTA, 270 + 2 * DELTA, 23 + 2 * DELTA)}
 
         for player_id in range(0, 6):
@@ -173,8 +173,8 @@ class Screen(object):
             regions = {0: (1110 + shift - DELTA, 629 - DELTA, 270 + 2 * DELTA, 23 + 2 * DELTA),
                        1: (805 + shift - DELTA, 568 - DELTA, 270 + 2 * DELTA, 23 + 2 * DELTA),
                        2: (822 + shift - DELTA, 349 - DELTA, 270 + 2 * DELTA, 23 + 2 * DELTA),
-                       3: (1239 + shift - DELTA, 250 - DELTA, 270 + 2 * DELTA, 23 + 2 * DELTA),
-                       4: (1230 - shift - DELTA, 313 - DELTA, 270 + 2 * DELTA, 23 + 2 * DELTA),
+                       3: (1239 + shift - DELTA, 249 - DELTA, 270 + 2 * DELTA, 23 + 2 * DELTA),
+                       4: (1231 - shift - DELTA, 313 - DELTA, 270 + 2 * DELTA, 23 + 2 * DELTA),
                        5: (1270 - shift - DELTA, 568 - DELTA, 270 + 2 * DELTA, 23 + 2 * DELTA)}
 
             bet_screen_PIL = pyautogui.screenshot(
@@ -363,15 +363,34 @@ class Game(object):
     def set_bet_by_decision(self):
         #it works only for player id = 0
         player_id = 0
+        button = self.get_button_position()
+        full_pot = self.get_full_pot()
         if self.decisions_current_street[player_id] == 'CALL':
             # since we CALL we need previous player with bet
             folded_players_current_round = self.get_folded_players_current_round()
             active_players = list(set(self.bets.keys()) - set(folded_players_current_round))
             active_players.sort(reverse=True)
-            logger.debug(f'!!! set_bet_by_decision active_players = {active_players}')
+            # logger.debug(f'!!! set_bet_by_decision active_players = {active_players}')
             self.bets[player_id] = self.bets[active_players[0]]
-        logger.debug(f'!!! set_bet_by_decision self.decisions[player_id] = {self.decisions_current_street[player_id]}')
-        logger.debug(f'!!! set_bet_by_decision self.bets[player_id] = {self.bets[player_id]}')
+        elif self.decisions_current_street[player_id] == 'CHECK':
+            if self.get_current_street() == 'PREFLOP':
+                if button + 1 == player_id:
+                    self.bets[player_id] = BLIND
+                elif button + 2 == player_id:
+                    self.bets[player_id] = BLIND * 2
+                else:
+                    self.bets[player_id] = 0
+            else:
+                self.bets[player_id] = 0
+        elif self.decisions_current_street[player_id] == 'RAISE_HALF_POT':
+            self.bets[player_id] = full_pot / 2
+        elif self.decisions_current_street[player_id] == 'RAISE_POT':
+            self.bets[player_id] = full_pot
+        elif self.decisions_current_street[player_id] == 'ALL_IN':
+            self.bets[player_id] = BLIND * 2 * 100
+
+        # logger.debug(f'!!! set_bet_by_decision self.decisions[player_id] = {self.decisions_current_street[player_id]}')
+        # logger.debug(f'!!! set_bet_by_decision self.bets[player_id] = {self.bets[player_id]}')
 
         # full_pot = self.get_full_pot()
 
@@ -563,6 +582,8 @@ class Game(object):
         logger.debug(f'set_decisions_all_players folded_players_current_round = {folded_players_current_round}')
         logger.debug(f'set_decisions_all_players folded_players_all_before_current_round = {folded_players_all_before_current_round}')
 
+        self.decisions_current_street = {}
+
         for player_id in range(1, 6):
             logger.debug(f'set_decisions_all_players CYCLE player_id = {player_id}')
             # logger.debug(f'set_decisions_all_players CYCLE bets[{player_id}] = {bets[player_id]}')
@@ -645,6 +666,9 @@ class Game(object):
 
         start_position = (button_position + 3) % 6
         logger.debug(f'set_decisions_first_round start_position = {start_position}')
+
+        self.decisions_current_street = {}
+
         if start_position == 0:
             return
 
@@ -748,7 +772,7 @@ class Game(object):
         player_id_list = list(previous_decisions_current_street.keys())
         player_id_list.sort(reverse=True)
         for player_id in player_id_list:
-            if previous_decisions_current_street[player_id] == 'RAISE':
+            if previous_decisions_current_street[player_id] in ('RAISE_POT', 'RAISE_HALF_POT', 'ALL_IN'):
                 end_position = player_id - 1
                 break
         if end_position is None: # None of players raised
@@ -762,7 +786,7 @@ class Game(object):
             end_position = 6
 
         logger.debug(f'set_decisions_after_changing_street end_position = {end_position}')
-
+        self.decisions_previous_street = {}
         for player_id in range(1, end_position + 1):
             logger.debug(f'set_decisions_after_changing_street CYCLE player_id = {player_id}')
             # logger.debug(f'set_decisions_after_changing_street CYCLE num_folded_players_previous_street_current_screen = {num_folded_players_previous_street_current_screen}')
@@ -804,6 +828,7 @@ class Game(object):
         if start_position == 0: # we are the first player to make decision in current round, so no players made decision
             return
 
+        self.decisions_current_street = {}
         previous_bet = 0
         for player_id in range(start_position, 6):
             logger.debug(f'set_decisions_after_changing_street CYCLE player_id = {player_id}')
