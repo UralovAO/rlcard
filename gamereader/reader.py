@@ -374,9 +374,9 @@ class Game(object):
             self.bets[player_id] = self.bets[active_players[0]]
         elif self.decisions_current_street[player_id] == 'CHECK':
             if self.get_current_street() == 'PREFLOP':
-                if button + 1 == player_id:
+                if (button + 1) % 6 == player_id:
                     self.bets[player_id] = BLIND
-                elif button + 2 == player_id:
+                elif (button + 2) % 6 == player_id:
                     self.bets[player_id] = BLIND * 2
                 else:
                     self.bets[player_id] = 0
@@ -726,14 +726,7 @@ class Game(object):
         #     sys.exit('calculate_decisions_after_changing_street previous_full_pot not more then 0')
 
         full_pot = self.get_full_pot() # it is where we now see on screen: "pot: 123456789" when we asked for pressing button with decision
-        # current_street_pot = self.__get_sum_bets(bets)
 
-        # if current_street == 'FLOP':
-        #     previous_full_pot = previous_full_pot - 2 * BLIND - BLIND + self.previous_bets[0]
-        # Site gets commission after changing street
-        # pot_commission_value = self.__get_commission(full_pot, current_street_pot)
-
-        # folded_players_all = self.get_folded_players_all() # all folded players that we see on a screen now
         folded_players_current_round = self.get_folded_players_current_round()
         folded_players_all_before_current_round = self.get_folded_players_all_before_current_round()
         folded_players_all_before_current_street = [x for x in folded_players_all_before_current_round]
@@ -748,6 +741,8 @@ class Game(object):
         logger.debug(f'set_decisions_after_changing_street folded_players_current_round = {folded_players_current_round}')
         logger.debug(f'set_decisions_after_changing_street folded_players_all_before_current_round = {folded_players_all_before_current_round}')
         logger.debug(f'set_decisions_after_changing_street bets = {bets}')
+        logger.debug(f'set_decisions_after_changing_street previous_bets = {self.get_previous_bets()}')
+
         # logger.debug(f'set_decisions_after_changing_street previous_full_pot = {previous_full_pot}')
         logger.debug(f'set_decisions_after_changing_street full_pot = {full_pot}')
         # logger.debug(f'set_decisions_after_changing_street current_street_pot = {current_street_pot}')
@@ -762,7 +757,7 @@ class Game(object):
         # and we will get into set_decisions_all_players
 
         # if someone who was last who raised before us then street will finish only after decisions all players before last raised
-        logger.debug(f'set_decisions_after_changing_street PREVIOUS ROUND')
+        logger.debug(f'set_decisions_after_changing_street PREVIOUS STREET')
         # player which was the last who raised is the end of previous round
         previous_decisions_current_street = self.get_previous_decisions_current_street()
         # previous_decisions_previous_street = self.get_previous_decisions_previous_street()
@@ -810,7 +805,7 @@ class Game(object):
             #     num_folded_players_previous_street_current_screen -= 1
             #     folded_players_all_before_current_street.append(player_id)
             #     self.previous_decisions[player_id] = 'FOLD'
-            elif self.previous_bets[0] == 0:
+            elif self.get_previous_bets()[0] == 0: # this is bet of us (player № 0). If our bet = 0 and street has changed then all players after us made CHECK
                 self.decisions_previous_street[player_id] = 'CHECK'
             # elif not pot_previous_street_current_screen > 0:
             #     self.previous_decisions[player_id] = 'CHECK'
@@ -822,7 +817,7 @@ class Game(object):
             logger.debug(f'set_decisions_after_changing_street CYCLE self.decisions_previous_street = {self.decisions_previous_street}')
 
         # CURRENT ROUND
-        logger.debug(f'set_decisions_after_changing_street CURRENT ROUND')
+        logger.debug(f'set_decisions_after_changing_street CURRENT STREET')
         start_position = (button_position + 1) % 6
         logger.debug(f'set_decisions_after_changing_street start_position = {start_position}')
         if start_position == 0: # we are the first player to make decision in current round, so no players made decision
@@ -970,8 +965,8 @@ if __name__ == '__main__':
                 game.start()
 
             # set up logger
-            if street != previous_street:
-                setup_logger(street, path.join(HERE, 'logs', f'{current_street}.log'))
+            if current_street != previous_street:
+                setup_logger(current_street, path.join(HERE, 'logs', f'{current_street}.log'))
                 n_round = 1
             else:
                 n_round += 1
@@ -996,7 +991,7 @@ if __name__ == '__main__':
             logger.debug(f'current street {current_street}')
             logger.debug(f'previous street {previous_street}')
             logger.debug(f'round = {n_round}')
-            print(street)
+            print(current_street)
             print('round = ', n_round)
             # print('!!! 3 game.full_pot = ', game.full_pot)
 
@@ -1012,7 +1007,7 @@ if __name__ == '__main__':
             # model gave us back answer
             # temp answer is CALL
             button = game.get_button_position()
-            if current_street == 'PREFLOP' and n_round == 1 and (button + 2) % 6 == 0
+            if current_street == 'PREFLOP' and n_round == 1 and (button + 2) % 6 == 0:
                 game.set_decision_current_street(PLAYER, 'CHECK')
             elif (button + 1) % 6 == 0:
                 game.set_decision_current_street(PLAYER, 'CHECK')
@@ -1027,7 +1022,7 @@ if __name__ == '__main__':
             game.set_previous_bets()
             # print('!!! 5 game.full_pot = ', game.full_pot)
             game.set_previous_full_pot()
-            previous_street = street
+            previous_street = current_street
 
             game.set_folded_players_all_before_current_round()
             # game.update_full_pot()
