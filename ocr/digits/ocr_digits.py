@@ -4,14 +4,24 @@ from os import path
 from .make_train_data import preproccess_image
 
 HERE = path.abspath(path.dirname(__file__))
-
+from datetime import  datetime
 # def get_number(image_path = 'data/2.png'):
-def get_number(im):
+def get_number(im, player_id='Pot', timestamp=datetime.now().timestamp(), shift=None):
     # print('player_id=',player_id)
     model = cv2.ml.KNearest_load(path.join(HERE, 'model','model.xml'))
 
     # im = cv2.imread(image_path)
+
+    root_project_dir = path.dirname(path.dirname(HERE))
+    cv2.imwrite(
+        path.join(root_project_dir, 'gamereader', 'data', 'screenshots', 'ocr', f'image_{player_id}_{timestamp}_{shift}.png'),
+        im)
+
     preproccessed_image = preproccess_image(im)
+
+    cv2.imwrite(
+        path.join(root_project_dir, 'gamereader', 'data', 'screenshots', 'ocr', f'preproccessed_image_{player_id}_{timestamp}_{shift}.png'),
+        preproccessed_image)
     # cv2.imwrite(f'preproccessed_image{player_id}.png', preproccessed_image)
     # cv2.imshow('out',preproccessed_image)
     # cv2.waitKey(0)
