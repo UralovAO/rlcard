@@ -1,5 +1,7 @@
 from rlcard.utils import *
 
+from gamereader import reader
+
 class Env(object):
     '''
     The base Env class. For all the environments in RLCard,
@@ -185,8 +187,15 @@ class Env(object):
             raise ValueError('Run in single agent not allowed.')
 
         trajectories = [[] for _ in range(self.player_num)]
-
-        self.game.dealer_id = int(input(f'>> Input dealer_id:'))
+        input(f'>> Модель загружена. Для продолжения нажмите любую клавишу')
+        # gamereader
+        screen = reader.Screen()
+        screen.set_work_position()
+        game = reader.Game()
+        game.process_screen()
+        print('!!! env.run button_position', game.get_button_position())
+        # self.game.dealer_id = int(input(f'>> Input dealer_id:'))
+        self.game.dealer_id = game.get_button_position()
         state, player_id = self.reset()
 
         # Loop to play the game

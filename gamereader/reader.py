@@ -15,12 +15,29 @@ MAX_PLAYERS = 6
 PLAYER = 0
 BLIND = 50
 HERE = path.abspath(path.dirname(__file__))
+# FORMAT_STRING = "%Y-%m-%d-%H-%M-%S"
+FORMAT_STRING = "%H-%M-%S"
 # screenshots_path = path.join(HERE, 'screenshots')
 
 # screen = pyautogui.screenshot(path.join(HERE, 'data', 'screenshots', 'screenshot.png'),
 #                               region=((1166-5, 964-5, 243+10, 21+10)))
 
 
+from enum import Enum
+
+class Decision(Enum):
+    FOLD = 'FOLD'
+    CHECK = 'CHECK'
+    CALL = 'CALL'
+    RAISE_HALF_POT = 'RAISE_HALF_POT'
+    RAISE_POT = 'RAISE_POT'
+    ALL_IN = 'ALL_IN'
+
+class Street(Enum):
+    PREFLOP = 'PREFLOP'
+    FLOP = 'FLOP'
+    TURN = 'TURN'
+    RIVER = 'RIVER'
 
 # LOGGING
 import logging
@@ -42,8 +59,15 @@ def setup_logger(name, log_file, level=logging.DEBUG):
 
 class Screen(object):
     def set_work_position(self):
-        game_window = pygetwindow.getActiveWindow()
-        # print('win.title= ', win.title)
+
+        # game_window = pygetwindow.getActiveWindow()
+        # print('game_window.title= ', game_window.title)
+        # "No Limit Hold'em - Logged In as'"
+
+        game_window = pygetwindow.getWindowsWithTitle("No Limit Hold'em")[0]
+
+        game_window.activate()
+
         width = int(960 * 1.6)
         hight = int(540 * 1.6)
         left = 1920 - width + 30
@@ -170,12 +194,12 @@ class Screen(object):
             )
 
             shift = get_shift(player_id, timestamp)
-            regions = {0: (1110 + shift - DELTA, 629 - DELTA, 270 + 2 * DELTA, 23 + 2 * DELTA),
-                       1: (805 + shift - DELTA, 568 - DELTA, 270 + 2 * DELTA, 23 + 2 * DELTA),
-                       2: (822 + shift - DELTA, 349 - DELTA, 270 + 2 * DELTA, 23 + 2 * DELTA),
-                       3: (1239 + shift - DELTA, 249 - DELTA, 270 + 2 * DELTA, 23 + 2 * DELTA),
-                       4: (1231 - shift - DELTA, 313 - DELTA, 270 + 2 * DELTA, 23 + 2 * DELTA),
-                       5: (1270 - shift - DELTA, 568 - DELTA, 270 + 2 * DELTA, 23 + 2 * DELTA)}
+            regions = {0: (1110 + shift - DELTA, 629 - DELTA, 270 + 2 * DELTA - shift, 23 + 2 * DELTA),
+                       1: (805 + shift - DELTA, 568 - DELTA, 270 + 2 * DELTA - shift, 23 + 2 * DELTA),
+                       2: (822 + shift - DELTA, 349 - DELTA, 270 + 2 * DELTA - shift, 23 + 2 * DELTA), # minus shift made because of phrase "pot:" is caught to picture for bet
+                       3: (1239 + shift - DELTA, 249 - DELTA, 270 + 2 * DELTA - shift, 23 + 2 * DELTA),
+                       4: (1231 - DELTA, 313 - DELTA, 270 + 2 * DELTA - shift, 23 + 2 * DELTA),
+                       5: (1270 - DELTA, 568 - DELTA, 270 + 2 * DELTA- shift, 23 + 2 * DELTA)}
 
             bet_screen_PIL = pyautogui.screenshot(
                 path.join(HERE, 'data', 'screenshots', f'bet_screen_{player_id}_{timestamp}_{shift}.png'),
@@ -184,7 +208,7 @@ class Screen(object):
             # convert PIL image to opencv format
             bet_screen_CV = np.array(bet_screen_PIL)
             # cv2.imwrite(f'bet_screen_CV{player_id}.png', bet_screen_CV)
-            bet = ocr_digits.get_number(bet_screen_CV)
+            bet = ocr_digits.get_number(bet_screen_CV, player_id, timestamp, shift)
             if bet is None:
                 bet = 0
             bets[player_id] = bet
@@ -334,6 +358,10 @@ class Game(object):
         for f in filelist:
             remove(f)
 
+        filelist = [f for f in glob(path.join(HERE, 'data', 'screenshots', 'ocr', '*.*'))]
+        for f in filelist:
+            remove(f)
+
     def clear_decisions(self):
         self.decisions = {}
 
@@ -372,8 +400,8 @@ class Game(object):
             active_players.sort(reverse=True)
             # logger.debug(f'!!! set_bet_by_decision active_players = {active_players}')
             self.bets[player_id] = self.bets[active_players[0]]
-        elif self.decisions_current_street[player_id] == 'CHECK':
-            if self.get_current_street() == 'PREFLOP':
+        elif self.decisions_current_street[player_id] == Decision.CHECK:
+            if self.get_current_street() == Street.PREFLOP:
                 if (button + 1) % 6 == player_id:
                     self.bets[player_id] = BLIND
                 elif (button + 2) % 6 == player_id:
@@ -382,11 +410,11 @@ class Game(object):
                     self.bets[player_id] = 0
             else:
                 self.bets[player_id] = 0
-        elif self.decisions_current_street[player_id] == 'RAISE_HALF_POT':
+        elif self.decisions_current_street[player_id] == Decision.RAISE_HALF_POT:
             self.bets[player_id] = full_pot / 2
-        elif self.decisions_current_street[player_id] == 'RAISE_POT':
+        elif self.decisions_current_street[player_id] == Decision.RAISE_POT:
             self.bets[player_id] = full_pot
-        elif self.decisions_current_street[player_id] == 'ALL_IN':
+        elif self.decisions_current_street[player_id] == Decision.ALL_IN:
             self.bets[player_id] = BLIND * 2 * 100
 
         # logger.debug(f'!!! set_bet_by_decision self.decisions[player_id] = {self.decisions_current_street[player_id]}')
@@ -431,7 +459,7 @@ class Game(object):
 
         return self.previous_full_pot
 
-    def get_pot_for_player_decision_old(self, player_id):
+    def get_pot_for_player_decision_old_old(self, player_id):
         button_position = self.get_button_position()
         if player_id is not None:
             player_id_list = [x for x in self.bets.keys() if x > button_position and x < player_id]
@@ -442,7 +470,7 @@ class Game(object):
         else:
             sys.exit('Game.get_pot_for_player_decision() player_id is None')
         return pot
-    def get_pot_for_player_decision(self, player_id):
+    def get_pot_for_player_decision_old(self, player_id):
         # button_position = self.get_button_position()
         if player_id is not None:
             player_id_list = [x for x in self.get_bets().keys() if x >=0 and x < player_id]
@@ -453,6 +481,19 @@ class Game(object):
         else:
             sys.exit('Game.get_pot_for_player_decision() player_id is None')
         return pot
+
+    def get_pot_for_player_decision(self, player_id):
+        if player_id is not None:
+            player_id_list = [x for x in self.get_bets().keys() if x < 6 and x >= player_id]
+            bets = [self.get_bets()[player_id] for player_id in player_id_list]
+
+            # self.get_full_pot() must return full pot without bets of current round
+            pot = self.get_full_pot() - sum(filter(lambda x: x is not None, bets))
+        else:
+            sys.exit('Game.get_pot_for_player_decision() player_id is None')
+        return pot
+
+
 
     def wait_for_bet_button(self):
         screen = Screen()
@@ -486,20 +527,42 @@ class Game(object):
         self.turn_card = screen.get_turn_card()
         self.flop_cards = screen.get_flop_cards()
 
-    def set_current_street(self):
+    def set_streets(self):
+
+        self.street_of_previous_round = self.current_street
+
         if self.river_card is not None:
-            self.current_street = 'RIVER'
+            self.current_street = Street.RIVER
         else:
             if self.turn_card is not None:
-                self.current_street = 'TURN'
+                self.current_street = Street.TURN
             else:
                 if len(list(filter(lambda x: x is not None, self.flop_cards.values()))) > 0:
-                    self.current_street = 'FLOP'
+                    self.current_street = Street.FLOP
                 else:
-                    self.current_street = 'PREFLOP'
+                    self.current_street = Street.PREFLOP
+
+
 
     def get_current_street(self):
         return self.current_street
+
+    def get_street_of_previous_round(self):
+        self.street_of_previous_round
+
+    def get_previous_street(self):
+        current_street = self.get_current_street()
+        # previous_street = None
+        if current_street == Street.PREFLOP:
+            previous_street = None
+        elif current_street == Street.FLOP:
+            previous_street = Street.PREFLOP
+        elif current_street == Street.TURN:
+            previous_street == Street.FLOP
+        elif current_street == Street.RIVER:
+            previous_street == Street.TURN
+
+        return previous_street
 
     def set_player_cards(self):
         screen = Screen()
@@ -547,19 +610,6 @@ class Game(object):
 
     def set_decisions_all_players(self):
 
-        def get_pot_for_player(player_id):
-            # only for
-            # button_position = self.get_button_position()
-            if player_id is not None:
-                player_id_list = [x for x in self.get_bets().keys() if x < 6 and x >= player_id]
-                bets = [self.get_bets()[player_id] for player_id in player_id_list]
-
-                # self.get_full_pot() must return full pot without bets of current round
-                pot = self.get_full_pot() - sum(filter(lambda x: x is not None, bets))
-            else:
-                sys.exit('Game.get_pot_for_player_decision() player_id is None')
-            return pot
-
         # logging.debug('start set_decisions_after_BB')
 
         button_position = self.get_button_position()
@@ -588,28 +638,28 @@ class Game(object):
             logger.debug(f'set_decisions_all_players CYCLE player_id = {player_id}')
             # logger.debug(f'set_decisions_all_players CYCLE bets[{player_id}] = {bets[player_id]}')
             logger.debug(f'set_decisions_all_players CYCLE previous_bet = {previous_bet}')
-            pot = get_pot_for_player(player_id)
+            pot = self.get_pot_for_player_decision(player_id)
             logger.debug(f'set_decisions_all_players CYCLE pot = {pot}')
             if player_id in folded_players_all_before_current_round:
                 logger.debug(f'set_decisions_all_players CYCLE player {player_id} NO DECISION because he folded before')
                 continue
             elif player_id in folded_players_current_round:
-                self.decisions_current_street[player_id] = 'FOLD'
+                self.decisions_current_street[player_id] = self.__make_decision_dict(Decision.FOLD)
             elif bets[player_id] == 0:
-                self.decisions_current_street[player_id] = 'CHECK'
-            elif self.decisions_current_street is not None and 'ALL_IN' in list(self.decisions_current_street.values()):
-            # elif is_previous_allin  == True:
-                self.decisions_current_street[player_id] = 'CALL'
+                self.decisions_current_street[player_id] = self.__make_decision_dict(Decision.CHECK)
+            elif self.decisions_current_street is not None and Decision.ALL_IN in [x['decision'] for x in
+                                                                                   self.decisions_current_street.values()]:
+                self.decisions_current_street[player_id] = self.__make_decision_dict(Decision.CALL)
             elif bets[player_id] == previous_bet:
-                self.decisions_current_street[player_id] = 'CALL'
+                self.decisions_current_street[player_id] = self.__make_decision_dict(Decision.CALL)
             elif bets[player_id] > previous_bet and bets[player_id] <= (3 * pot / 4):
-                self.decisions_current_street[player_id] = 'RAISE_HALF_POT'
+                self.decisions_current_street[player_id] = self.__make_decision_dict(Decision.RAISE_HALF_POT)
                 previous_bet = bets[player_id]
             elif bets[player_id] > (3 * pot / 4) and bets[player_id] <= pot + (100 * 2 * BLIND - pot) / 2:
-                self.decisions_current_street[player_id] = 'RAISE_POT'
+                self.decisions_current_street[player_id] = self.__make_decision_dict(Decision.RAISE_POT)
                 previous_bet = bets[player_id]
             elif bets[player_id] > pot + (100 * 2 * BLIND - pot) / 2:
-                self.decisions_current_street[player_id] = 'ALL_IN'
+                self.decisions_current_street[player_id] = self.__make_decision_dict(Decision.ALL_IN)
                 previous_bet = bets[player_id]
                 # is_previous_allin = True
             else:
@@ -621,7 +671,7 @@ class Game(object):
         pass
 
     def set_decision_current_street(self, player_id, decision):
-        self.decisions_current_street[player_id] = decision
+        self.decisions_current_street[player_id] = self.__make_decision_dict(decision)
 
     def get_decisions_current_street(self):
         return self.decisions_current_street
@@ -645,10 +695,19 @@ class Game(object):
     def get_previous_bets(self):
         return self.previous_bets
 
+    def __make_decision_dict(self, decision, street = None):
+        return {'decision': decision, 'street': self.get_current_street() if street is None else street, 'state': 'NOT_READ'}
+
+    # def __update_state_decision_dict(self, new_state, sign_current_street=True):
+    #     self.decisions_current_street
+    #     return {'decision': decision, 'street': self.get_current_street() if street is None else street, 'state': 'NOT_READ'}
+
+
     def set_decisions_first_round(self):
         # logger.debug(f'start set_decisions_after_BB')
         button_position = self.get_button_position()
         bets = self.get_bets()
+        # current_street = self.get_current_street()
         # previous_full_pot = self.get_previous_full_pot()  # pot at the previous moment when we asked for pressing button with decision
         # folded_players = self.get_folded_players()
 
@@ -676,23 +735,24 @@ class Game(object):
             logger.debug(f'set_decisions_first_round CYCLE player_id = {player_id}')
             logger.debug(f'set_decisions_first_round CYCLE previous_bet = {previous_bet}')
             pot = self.get_pot_for_player_decision(player_id)
+
             logger.debug(f'set_decisions_first_round CYCLE pot = {pot}')
             if player_id in folded_players_current_round:
-                self.decisions_current_street[player_id] = 'FOLD'
+                self.decisions_current_street[player_id] = self.__make_decision_dict(Decision.FOLD)
             elif bets[player_id] == 0:
-                self.decisions_current_street[player_id] = 'CHECK'
-            elif self.decisions_current_street is not None and 'ALL_IN' in list(self.decisions_current_street.values()):
-                self.decisions_current_street[player_id] = 'CALL'
+                self.decisions_current_street[player_id] = self.__make_decision_dict(Decision.CHECK)
+            elif self.decisions_current_street is not None and Decision.ALL_IN in [x['decision'] for x in self.decisions_current_street.values()]:
+                self.decisions_current_street[player_id] = self.__make_decision_dict(Decision.CALL)
             elif bets[player_id] == previous_bet:
-                self.decisions_current_street[player_id] = 'CALL'
+                self.decisions_current_street[player_id] = self.__make_decision_dict(Decision.CALL)
             elif bets[player_id] > previous_bet and bets[player_id] <= (3 * pot / 4):
-                self.decisions_current_street[player_id] = 'RAISE_HALF_POT'
+                self.decisions_current_street[player_id] = self.__make_decision_dict(Decision.RAISE_HALF_POT)
                 previous_bet = bets[player_id]
             elif bets[player_id] > (3 * pot / 4) and bets[player_id] <= pot + (100 * 2 * BLIND - pot) / 2:
-                self.decisions_current_street[player_id] = 'RAISE_POT'
+                self.decisions_current_street[player_id] = self.__make_decision_dict(Decision.RAISE_POT)
                 previous_bet = bets[player_id]
             elif bets[player_id] > pot + (100 * 2 * BLIND - pot) / 2:
-                self.decisions_current_street[player_id] = 'ALL_IN'
+                self.decisions_current_street[player_id] = self.__make_decision_dict(Decision.ALL_IN)
                 previous_bet = bets[player_id]
                 # is_previous_allin = True
             else:
@@ -717,6 +777,7 @@ class Game(object):
 
     def set_decisions_after_changing_street(self):
         current_street = self.get_current_street()
+        previous_street = self.get_previous_street()
         button_position = self.get_button_position()
         bets = self.get_bets() # bets from current screen
         # previous_full_pot = self.get_previous_full_pot() # pot at the previous moment when we asked for pressing button with decision
@@ -737,6 +798,7 @@ class Game(object):
         # we see folded player after button, he could fold this round or previous
         # we need to decide in which round he folded
         logger.debug(f'set_decisions_after_changing_street current_street = {current_street}')
+        logger.debug(f'set_decisions_after_changing_street previous_street = {previous_street}')
         logger.debug(f'set_decisions_after_changing_street button_position = {button_position}')
         logger.debug(f'set_decisions_after_changing_street folded_players_current_round = {folded_players_current_round}')
         logger.debug(f'set_decisions_after_changing_street folded_players_all_before_current_round = {folded_players_all_before_current_round}')
@@ -767,11 +829,19 @@ class Game(object):
         player_id_list = list(previous_decisions_current_street.keys())
         player_id_list.sort(reverse=True)
         for player_id in player_id_list:
-            if previous_decisions_current_street[player_id] in ('RAISE_POT', 'RAISE_HALF_POT', 'ALL_IN'):
+            if previous_decisions_current_street[player_id]['decision'] in [Decision.RAISE_POT, Decision.RAISE_HALF_POT,
+                                                                            Decision.ALL_IN]:
+                # print('!!! previous_decisions_current_street[player_id] = ',
+            #       previous_decisions_current_street[player_id])
+
+            # print('!!! previous_decisions_current_street[player_id][decision] = ', previous_decisions_current_street[player_id]['decision'])
+            # if previous_decisions_current_street[player_id]['decision'] == Decision.RAISE_POT or \
+            #         previous_decisions_current_street[player_id]['decision'] == Decision.RAISE_HALF_POT or \
+            #         previous_decisions_current_street[player_id]['decision'] == Decision.ALL_IN:
                 end_position = player_id - 1
                 break
         if end_position is None: # None of players raised
-            if current_street == 'FLOP':
+            if current_street == Street.FLOP:
                 end_position = button_position + 2 # end of PREFLOP
                 end_position = end_position % 6
             else:
@@ -791,7 +861,7 @@ class Game(object):
                 continue
             elif player_id in folded_players_current_round:
                 folded_players_all_before_current_street.append(player_id)
-                self.decisions_previous_street[player_id] = 'FOLD'
+                self.decisions_previous_street[player_id] = self.__make_decision_dict(Decision.FOLD, previous_street)
             # below FOLD is defenitly in previous street
             # elif player_id in folded_players_current_round and player_id <= button_position:
             #     num_folded_players_previous_street_current_screen -= 1
@@ -806,13 +876,13 @@ class Game(object):
             #     folded_players_all_before_current_street.append(player_id)
             #     self.previous_decisions[player_id] = 'FOLD'
             elif self.get_previous_bets()[0] == 0: # this is bet of us (player № 0). If our bet = 0 and street has changed then all players after us made CHECK
-                self.decisions_previous_street[player_id] = 'CHECK'
+                self.decisions_previous_street[player_id] = self.__make_decision_dict(Decision.CHECK, previous_street)
             # elif not pot_previous_street_current_screen > 0:
             #     self.previous_decisions[player_id] = 'CHECK'
-            elif current_street == 'FLOP' and player_id == (button_position + 2) % 6 and end_position == (button_position + 2) % 6:  # player on big blind on preflop
-                self.decisions_previous_street[player_id] = 'CHECK'
+            elif current_street == Street.FLOP and player_id == (button_position + 2) % 6 and end_position == (button_position + 2) % 6:  # player on big blind on preflop
+                self.decisions_previous_street[player_id] = self.__make_decision_dict(Decision.CHECK, previous_street)
             else:
-                self.decisions_previous_street[player_id] = 'CALL'
+                self.decisions_previous_street[player_id] = self.__make_decision_dict(Decision.CALL, previous_street)
 
             logger.debug(f'set_decisions_after_changing_street CYCLE self.decisions_previous_street = {self.decisions_previous_street}')
 
@@ -835,21 +905,21 @@ class Game(object):
                 logger.debug(f'set_decisions_all_players CYCLE player {player_id} NO DECISION because he folded before')
                 continue
             elif player_id in folded_players_current_round:
-                self.decisions_current_street[player_id] = 'FOLD'
+                self.decisions_current_street[player_id] = self.__make_decision_dict(Decision.FOLD)
             elif bets[player_id] == 0:
-                self.decisions_current_street[player_id] = 'CHECK'
-            elif self.decisions_current_street is not None and 'ALL_IN' in list(self.decisions_current_street.values()):
-                self.decisions_current_street[player_id] = 'CALL'
+                self.decisions_current_street[player_id] = self.__make_decision_dict(Decision.CHECK)
+            elif self.decisions_current_street is not None and Decision.ALL_IN in [x['decision'] for x in self.decisions_current_street.values()]:
+                self.decisions_current_street[player_id] = self.__make_decision_dict(Decision.CALL)
             elif bets[player_id] == previous_bet:
-                self.decisions_current_street[player_id] = 'CALL'
+                self.decisions_current_street[player_id] = self.__make_decision_dict(Decision.CALL)
             elif bets[player_id] > previous_bet and bets[player_id] <= (3 * pot / 4):
-                self.decisions_current_street[player_id] = 'RAISE_HALF_POT'
+                self.decisions_current_street[player_id] = self.__make_decision_dict(Decision.RAISE_HALF_POT)
                 previous_bet = bets[player_id]
             elif bets[player_id] > (3 * pot / 4) and bets[player_id] <= pot + (100 * 2 * BLIND - pot) / 2:
-                self.decisions_current_street[player_id] = 'RAISE_POT'
+                self.decisions_current_street[player_id] = self.__make_decision_dict(Decision.RAISE_POT)
                 previous_bet = bets[player_id]
             elif bets[player_id] > pot + (100 * 2 * BLIND - pot) / 2:
-                self.decisions_current_street[player_id] = 'ALL_IN'
+                self.decisions_current_street[player_id] = self.__make_decision_dict(Decision.ALL_IN)
                 previous_bet = bets[player_id]
                 # is_previous_allin = True
             else:
@@ -858,77 +928,109 @@ class Game(object):
             logger.debug(f'set_decisions_after_changing_street CYCLE self.decisions_current_street = {self.decisions_current_street}')
 
 
-# class RoundState(object):
-#     button_position
-#     bets
-#     player_cards
-#     flop_cards
-#     turn_card
-#     river_card
-#     decisions
+    def init_game(self):
+
+        self.wait_for_bet_button()  # waiting for other players finishes placing their bets if necessary
+
+        print('REAL GAME IS STARTED!')
+        self.start()
+        current_street = Street.PREFLOP
+        n_round = 1
+        # set up logger
+        setup_logger(current_street.value, path.join(HERE, 'logs', f'{current_street.value}.log'))
+
+        # read game data from screen
+        self.set_community_cards()
+        self.set_current_street()
+        self.set_player_cards()
+        self.set_button_position()
+        self.set_bets()
+        self.set_folded_players_all()
+        self.set_full_pot()
+
+        pyautogui.screenshot(path.join(HERE, 'logs', f'{current_street.value}_{n_round}.png'))
+
+        print(current_street.value)
+        print('round = ', n_round)
+
+        self.set_decisions_first_round()
+
+    def process_screen(self):
+        logger.debug(' ')
+        logger.debug(f'process_screen started time = {time}')
+        time = datetime.now().strftime(FORMAT_STRING)
+        game.wait_for_bet_button()
+
+        game.set_community_cards()
+        game.set_current_street()
+
+        current_street = game.get_current_street()
+        street_of_previous_round = game.get_street_of_previous_round()
+        # print('!!! 2 game.full_pot = ', game.full_pot)
+        if current_street == Street.PREFLOP and street_of_previous_round != Street.PREFLOP:
+            print('GAME IS STARTED!')
+            game.start()
+
+        # set up logger
+        # print('!!! current street = ', current_street)
+
+        if current_street != street_of_previous_round:
+            setup_logger(current_street.value, path.join(HERE, 'logs', f'{current_street.value}_{time}.log'))
+        # read game data from screen
+
+        game.set_player_cards()
+        game.set_button_position()
+        game.set_bets()
+        game.set_folded_players_all()
+        game.set_full_pot()
+
+        pyautogui.screenshot(path.join(HERE, 'logs', f'{current_street.value}_{time}.png'))
+
+        logger.debug(f'current street {current_street.value}')
+        logger.debug(f'previous street {street_of_previous_round.value}')
+
+        print(current_street.value)
+        # print('round = ', n_round)
+        # print('!!! 3 game.full_pot = ', game.full_pot)
+        # street_of_previous_round = self.get_street_of_previous_round()
+
+        if current_street == Street.PREFLOP and street_of_previous_round is None:
+            game.set_decisions_first_round()
+        else:
+            if current_street != street_of_previous_round:
+                game.set_decisions_after_changing_street()
+            else:
+                game.set_decisions_all_players()
+
+
+def get_decision_for_AI(self, player_id):
+
+        logger.debug(f'get_decision_for_AI player_id = {player_id}, self.decisions_previous_street = {self.decisions_previous_street}')
+        logger.debug(f'get_decision_for_AI player_id = {player_id}, self.decisions_current_street = {self.decisions_current_street}')
+
+        if self.decisions_previous_street[player_id] is not None and self.decisions_previous_street[player_id]['state'] == 'NOT_READ':
+            decision_for_AI = self.decisions_previous_street[player_id]['decision'].value
+            self.decisions_previous_street[player_id]['state'] = 'READ'
+        elif self.decisions_current_street[player_id] is not None and self.decisions_current_street[player_id]['state'] == 'NOT_READ':
+            decision_for_AI = self.decisions_current_street[player_id]['decision'].value
+            self.decisions_current_street[player_id]['state'] = 'READ'
+        else:
+            self.process_screen()
+
+        logger.debug(f'get_decision_for_AI player_id = {player_id}, decision_for_AI = {decision_for_AI}')
+
+        if decision_for_AI is None:
+            sys.exit(f'get_decision_for_AI player_id = {player_id} decision_for_AI is None!')
+
+        return decision_for_AI
 
 
 if __name__ == '__main__':
 
-    ####
-
-    # no_chip = pyautogui.locate(path.join(HERE, 'data', 'signs', 'no_chip_1.png'),
-    #                            path.join(HERE, 'data', 'screenshots',
-    #                                      'bet_screen_1_1624813324.157915_locate_no_chip_CV2.png'),
-    #                            grayscale=False)
-    # print('no_chip = ', no_chip)
-    # assert 1==6
-    #####
-    # time.sleep(5)
-    # screen = Screen()
-    # screen.set_work_position()
-    # time.sleep(1)
-    # pyautogui.screenshot(
-    #     path.join(HERE, 'data', 'screenshots', f'1.png')
-    # )
-
-    # Read the images from the file
-    # small_image = cv2.imread(path.join(HERE, 'data', 'signs', 'no_chip.png'))
-    # small_image = cv2.imread(path.join(HERE, 'data', 'signs', 'button.png'))
-    # small_image = cv2.cvtColor(small_image, cv2.COLOR_BGR2GRAY)
-    # large_image = cv2.imread(
-    #     path.join(HERE, 'data', 'screenshots', 'bet_screen_1_1624813324.157915_locate_no_chip_CV2.png'))
-    # large_image = cv2.imread(
-    #     path.join(HERE, 'data', 'screenshots', 'bet_screen_0_1624813323.926711_locate_no_chip_CV2.png'))
-    #
-    # large_image = cv2.imread(
-    #     path.join(HERE, 'data', 'screenshots', 'bet_screen_0_1624813362.09999_locate_no_chip_CV2.png'))
-    # large_image = cv2.cvtColor(large_image, cv2.COLOR_BGR2GRAY)
-
-    # large_image = cv2.imread(path.join(HERE, 'data', 'screenshots', '1.png'))
-
-    # large_image = small_image
-    # cv2.imshow('small_image', small_image)
-    # key = cv2.waitKey(0)
-    #
-    # cv2.imshow('large_image', large_image)
-    # key = cv2.waitKey(0)
-    # method = cv2.TM_SQDIFF
-    # method = cv2.TM_SQDIFF_NORMED
-    # method = cv2.TM_CCORR_NORMED
-    # result = cv2.matchTemplate(small_image, large_image, method)
-
-    # We want the minimum squared difference
-    # minVal, maxVal, minLoc, maxLoc = cv2.minMaxLoc(result)
-    # Draw the rectangle:
-    # Extract the coordinates of our best match
-    # MPx, MPy = minLoc
-
-    # print('small_image.shape = ', small_image.shape)
-    # print('large_image.shape = ', large_image.shape)
-    # print('minVal = ', minVal)
-    # print('maxVal = ', maxVal)
-    # print('maxLoc = ', maxLoc)
-    # print('minLoc = ', minLoc)
-    # assert 1 == 7
-    #####
-
-    # assert 1 == 3
+    # ss = pygetwindow.getWindowsWithTitle("No Limit Hold'em")[0]
+    # print('ss = ', ss)
+    # ss.activate()
+    # assert 1==3
 
     time.sleep(5)
 
@@ -937,16 +1039,6 @@ if __name__ == '__main__':
 
     game = Game()
 
-
-    # street = 'test1'
-    # setup_logger(street, path.join(HERE, 'logs', f'{street}.log'))
-    # logger.debug(f'test1')
-    # street = 'test2'
-    # setup_logger(street, path.join(HERE, 'logs', f'{street}.log'))
-    # logger.debug(f'test2')
-    # sys.exit('g')
-    # assert 1==4
-    ####
     previous_street = None
     n_round = None
 
@@ -956,17 +1048,19 @@ if __name__ == '__main__':
         if game.wait_for_bet_button(): # waiting for other players finishes placing their bets if necessary
 
             game.set_community_cards()
-            game.set_current_street()
+            game.set_streets()
 
             current_street = game.get_current_street()
             # print('!!! 2 game.full_pot = ', game.full_pot)
-            if current_street == 'PREFLOP' and previous_street != 'PREFLOP':
+            if current_street == Street.PREFLOP and previous_street != Street.PREFLOP:
                 print('GAME IS STARTED!')
                 game.start()
 
             # set up logger
+            # print('!!! current street = ', current_street)
+
             if current_street != previous_street:
-                setup_logger(current_street, path.join(HERE, 'logs', f'{current_street}.log'))
+                setup_logger(current_street.value, path.join(HERE, 'logs', f'{current_street.value}.log'))
                 n_round = 1
             else:
                 n_round += 1
@@ -986,16 +1080,16 @@ if __name__ == '__main__':
 
 
 
-            screen = pyautogui.screenshot(path.join(HERE, 'logs', f'{current_street}_{n_round}.png'))
+            screen = pyautogui.screenshot(path.join(HERE, 'logs', f'{current_street.value}_{n_round}.png'))
 
-            logger.debug(f'current street {current_street}')
+            logger.debug(f'current street {current_street.value}')
             logger.debug(f'previous street {previous_street}')
             logger.debug(f'round = {n_round}')
             print(current_street)
             print('round = ', n_round)
             # print('!!! 3 game.full_pot = ', game.full_pot)
 
-            if current_street == 'PREFLOP' and previous_street != 'PREFLOP':
+            if current_street == Street.PREFLOP and previous_street != Street.PREFLOP:
                 game.set_decisions_first_round()
             else:
                 if current_street != previous_street:
@@ -1007,12 +1101,12 @@ if __name__ == '__main__':
             # model gave us back answer
             # temp answer is CALL
             button = game.get_button_position()
-            if current_street == 'PREFLOP' and n_round == 1 and (button + 2) % 6 == 0:
-                game.set_decision_current_street(PLAYER, 'CHECK')
-            elif (button + 1) % 6 == 0:
-                game.set_decision_current_street(PLAYER, 'CHECK')
+            if current_street == Street.PREFLOP and n_round == 1 and (button + 2) % 6 == 0:
+                game.set_decision_current_street(PLAYER, Decision.CHECK)
+            elif current_street != Street.PREFLOP and (button + 1) % 6 == 0:
+                game.set_decision_current_street(PLAYER, Decision.CHECK)
             else:
-                game.set_decision_current_street(PLAYER, 'CALL')
+                game.set_decision_current_street(PLAYER, Decision.CALL)
 
             game.set_bet_by_decision()
 

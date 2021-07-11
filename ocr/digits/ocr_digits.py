@@ -6,7 +6,7 @@ from .make_train_data import preproccess_image
 HERE = path.abspath(path.dirname(__file__))
 from datetime import  datetime
 # def get_number(image_path = 'data/2.png'):
-def get_number(im, player_id='Pot', timestamp=datetime.now().timestamp(), shift=None):
+def get_number(im, player_id='Pot', timestamp=round(datetime.now().timestamp()), shift=None):
     # print('player_id=',player_id)
     model = cv2.ml.KNearest_load(path.join(HERE, 'model','model.xml'))
 
