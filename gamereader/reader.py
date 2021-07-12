@@ -57,6 +57,7 @@ def setup_logger(name, log_file, level=logging.DEBUG):
 
     # return logger
 
+
 class Screen(object):
     def set_work_position(self):
 
@@ -340,6 +341,13 @@ class Game(object):
         self.decisions_previous_street = {}
         self.previous_decisions_previous_street = {}
         self.previous_decisions_current_street = {}
+
+    def debug(self, message):
+        current_street = self.get_current_street()
+        if current_street is not None:
+            logger.debug(f'{current_street.value} {message}')
+        else:
+            logger.debug(message)
 
     def start(self):
         # self.full_pot = 0
@@ -927,8 +935,14 @@ class Game(object):
 
             logger.debug(f'set_decisions_after_changing_street CYCLE self.decisions_current_street = {self.decisions_current_street}')
 
-
     def init_game(self):
+        screen = Screen()
+        screen.set_work_position()
+
+        time = datetime.now().strftime(FORMAT_STRING)
+        setup_logger('PREFLOP', path.join(HERE, 'logs', f'{PREFLOP}_{time}.log'))
+
+    def init_game_old(self):
 
         self.wait_for_bet_button()  # waiting for other players finishes placing their bets if necessary
 
