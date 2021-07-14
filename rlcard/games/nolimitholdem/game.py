@@ -13,6 +13,8 @@ from rlcard.games.nolimitholdem import Round, Action
 from rlcard.core import Card
 from rlcard.utils.utils import take_out_cards
 
+IS_READER = False
+
 class Stage(Enum):
 
     PREFLOP = 0
@@ -58,6 +60,23 @@ class NolimitholdemGame(Game):
         card = Card(suit_rank_card[0], suit_rank_card[1])
         return card
 
+    def get_player_cards_from_reader(self):
+        reader_cards = self.reader_game.get_player_cards()
+        print('!!!### reader_cards = ', reader_cards)
+        suit_rank_card_0 = reader_cards[0]
+        suit_rank_card_0 = suit_rank_card_0.upper()
+        print('!!!### suit_rank_card_0 = ', suit_rank_card_0)
+        card_0 = Card(suit_rank_card_0[0], suit_rank_card_0[1])
+        print('!!!### card_0 = ', card_0.get_index())
+
+        suit_rank_card_1 = reader_cards[1]
+        suit_rank_card_1 = suit_rank_card_1.upper()
+        print('!!!### suit_rank_card_1 = ', suit_rank_card_1)
+        card_1 = Card(suit_rank_card_1[0], suit_rank_card_1[1])
+        print('!!!### card_1 = ', card_1.get_index())
+
+        return [card_0, card_1]
+
     def init_game(self):
         ''' Initialilze the game of Limit Texas Hold'em
 
@@ -70,7 +89,8 @@ class NolimitholdemGame(Game):
                 (int): Current player's id
         '''
         if self.dealer_id is None:
-            self.dealer_id = self.np_random.randint(0, self.num_players)
+            sys.exit('dealer_id is None')
+            # self.dealer_id = self.np_random.randint(0, self.num_players)
 
         # Initilize a dealer that can deal cards
         self.dealer = Dealer(self.np_random)
@@ -82,35 +102,26 @@ class NolimitholdemGame(Game):
         self.judger = Judger(self.np_random)
 
         # Deal cards to each  player to prepare for the first round
-
-        # index_player_card = 0
-        # card1 = Card('S', 'A')
-        # card2 = Card('C', 'A')
-        # print('!!! len(self.dealer.deck) = ', len(self.dealer.deck))
-        # take_out_cards(self.dealer.deck, [card1, card2])
-        # print('!!! len(self.dealer.deck) = ', len(self.dealer.deck))
-        # self.players[index_player_card].hand = [card1, card2]
-        #
-        # index_player_card = 1
-        # card1 = Card('H', 'A')
-        # card2 = Card('C', 'A')
-        # print('!!! len(self.dealer.deck) = ', len(self.dealer.deck))
-        # take_out_cards(self.dealer.deck, [card1, card2])
-        # print('!!! len(self.dealer.deck) = ', len(self.dealer.deck))
-        # self.players[index_player_card].hand = [card1, card2]
-
-
+        if IS_READER:
+            self.players[0].hand = self.get_player_cards_from_reader()
+            # for card in self.players[0].hand:
+            #     print('!!!####1', card.get_index())
+            take_out_cards(self.dealer.deck, self.players[0].hand.copy())
+        # for card in self.players[0].hand:
+        #     print('!!!####2', card.get_index())
         for i in range(2 * self.num_players):
             index_player = i % self.num_players
             if index_player in [0]:
-                card = self.input_card(f'HAND CARD for player {index_player}. Input suit and rank of card:')
-                self.players[index_player].hand.append(card)
-                take_out_cards(self.dealer.deck, [card])
+                pass
+                if not IS_READER:
+                    card = self.input_card(f'HAND CARD for player {index_player}. Input suit and rank of card:')
+                    self.players[index_player].hand.append(card)
+                    take_out_cards(self.dealer.deck, [card])
             else:
                 self.players[index_player].hand.append(self.dealer.deal_card())
 
-        # for card in self.dealer.deck:
-        #     print('!!!', card.get_index())
+        # for card in self.players[0].hand:
+        #     print('!!!####3', card.get_index())
 
         # Initilize public cards
         self.public_cards = []

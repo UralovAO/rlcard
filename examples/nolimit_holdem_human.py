@@ -14,13 +14,15 @@ from rlcard.agents.nfsp_agent_pytorch import NFSPAgent
 # Make environment
 # Set 'record_action' to True because we need it to print results
 env = rlcard.make('no-limit-holdem',
-                  config={'record_action': True, 'game_player_num': 3, 'chips_for_each': [100]*3}
+                  config={'record_action': True, 'game_player_num': 6, 'chips_for_each': [100]*6}
                   )
 
 human_agent0 = HumanAgent(env.action_num)
 human_agent1 = HumanAgent(env.action_num)
-# human_agent2 = HumanAgent(env.action_num)
-# human_agent3 = HumanAgent(env.action_num)
+human_agent2 = HumanAgent(env.action_num)
+human_agent3 = HumanAgent(env.action_num)
+human_agent4 = HumanAgent(env.action_num)
+
 
 nfsp_agent = NFSPAgent(scope='nfsp' + str(2),
                       action_num=env.action_num,
@@ -29,12 +31,14 @@ nfsp_agent = NFSPAgent(scope='nfsp' + str(2),
                       q_mlp_layers=[512,1024,2048,1024,512],
                       device=torch.device('cpu'))
 
-checkpoint = torch.load(r'D:\Development\Jupiter\ rlcard\models\pretrained\nolimit_holdem_nfsp_pytorch\new\model.pth')
+# checkpoint = torch.load(r'D:\Development\Jupiter\ rlcard\models\pretrained\nolimit_holdem_nfsp_pytorch\new\model.pth')
+checkpoint = torch.load(r'D:\Development\PyCharm\rlcard\rlcard\models\pretrained\leduc_holdem_nfsp_pytorch\20210501\model.pth')
+
 nfsp_agent.load(checkpoint)
 
 # random_agent = RandomAgent(action_num=env.action_num)
 
-env.set_agents([nfsp_agent, human_agent0, human_agent1])
+env.set_agents([nfsp_agent, human_agent0, human_agent1, human_agent2, human_agent3, human_agent4])
 
 # env.game.dealer_id = 1
 

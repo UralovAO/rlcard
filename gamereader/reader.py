@@ -39,22 +39,52 @@ class Street(Enum):
     TURN = 'TURN'
     RIVER = 'RIVER'
 
+
+# clear previous logs
+filelist = [f for f in glob(path.join(HERE, 'logs', '*.*'))]
+for f in filelist:
+    remove(f)
+
+# clear previous screenshots
+filelist = [f for f in glob(path.join(HERE, 'data', 'screenshots', '*.*'))]
+for f in filelist:
+    remove(f)
+
+filelist = [f for f in glob(path.join(HERE, 'data', 'screenshots', 'ocr', '*.*'))]
+for f in filelist:
+    remove(f)
+
 # LOGGING
 import logging
-global logger
+# global logger
 
-formatter = logging.Formatter('%(asctime)s %(name)-6s %(message)s', '%m-%d %H:%M')
-def setup_logger(name, log_file, level=logging.DEBUG):
-    """To setup as many loggers as you want"""
+# formatter = logging.Formatter('%(asctime)s %(message)s', '%m-%d %H:%M')
 
-    handler = logging.FileHandler(log_file)
-    handler.setFormatter(formatter)
+#%(name)-6s %(funcName)s
 
-    global logger
-    logger = logging.getLogger(name)
-    logger.setLevel(level)
-    logger.addHandler(handler)
 
+# handler = logging.FileHandler(log_file)
+# handler.setFormatter(formatter)
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+
+handler = logging.FileHandler(path.join(HERE, 'logs', 'log.txt'))
+handler.setFormatter(logging.Formatter('%(asctime)s %(name)s %(funcName)s %(message)s', '%m-%d %H:%M'))
+
+logger.addHandler(handler)
+
+# def setup_logger(name, log_file, level=logging.DEBUG):
+#     """To setup as many loggers as you want"""
+#
+#     handler = logging.FileHandler(log_file)
+#     handler.setFormatter(formatter)
+#
+#     global logger
+#     logger = logging.getLogger(name)
+#     logger.setLevel(level)
+#     logger.addHandler(handler)
+#
     # return logger
 
 
@@ -66,8 +96,12 @@ class Screen(object):
         # "No Limit Hold'em - Logged In as'"
 
         game_window = pygetwindow.getWindowsWithTitle("No Limit Hold'em")[0]
-
-        game_window.activate()
+        print(game_window.title)
+        try:
+            game_window.activate()
+        except:
+            game_window.minimize()
+            game_window.maximize()
 
         width = int(960 * 1.6)
         hight = int(540 * 1.6)
@@ -251,9 +285,9 @@ class Screen(object):
         DELTA = 0
         cards = {}
 
-        regions = {1: (940 - DELTA, 382 - DELTA, 24 + 2 * DELTA, 48 + 2 * DELTA),
-                   2: (1036 - DELTA, 382 - DELTA, 24 + 2 * DELTA, 48 + 2 * DELTA),
-                   3: (1132 - DELTA, 382 - DELTA, 24 + 2 * DELTA, 48 + 2 * DELTA)}
+        regions = {0: (940 - DELTA, 382 - DELTA, 24 + 2 * DELTA, 48 + 2 * DELTA),
+                   1: (1036 - DELTA, 382 - DELTA, 24 + 2 * DELTA, 48 + 2 * DELTA),
+                   2: (1132 - DELTA, 382 - DELTA, 24 + 2 * DELTA, 48 + 2 * DELTA)}
 
         for card_id in regions.keys():
             cards[card_id] = self.__get_card_by_region(regions[card_id])
@@ -273,8 +307,8 @@ class Screen(object):
     def get_player_cards(self):
         DELTA = 0
         cards = {}
-        regions = {1: (1177 - DELTA, 685 - DELTA, 24 + 2 * DELTA, 48 + 2 * DELTA),
-                   2: (1087 - DELTA, 686 - DELTA, 24 + 2 * DELTA, 48 + 2 * DELTA)}
+        regions = {0: (1177 - DELTA, 685 - DELTA, 24 + 2 * DELTA, 48 + 2 * DELTA),
+                   1: (1087 - DELTA, 686 - DELTA, 24 + 2 * DELTA, 48 + 2 * DELTA)}
 
         for card_id in regions.keys():
             cards[card_id] = self.__get_card_by_region(regions[card_id])
@@ -350,6 +384,7 @@ class Game(object):
             logger.debug(message)
 
     def start(self):
+        pass
         # self.full_pot = 0
         # self.previous_full_pot = 0
         # self.previous_decisions = None
@@ -357,18 +392,18 @@ class Game(object):
         # self.set_first_round_sign(True)
 
         # clear previous logs
-        filelist = [f for f in glob(path.join(HERE, 'logs', '*.*'))]
-        for f in filelist:
-            remove(f)
-
+        # filelist = [f for f in glob(path.join(HERE, 'logs', '*.*'))]
+        # for f in filelist:
+        #     remove(f)
+        #
         # clear previous screenshots
-        filelist = [f for f in glob(path.join(HERE, 'data', 'screenshots', '*.*'))]
-        for f in filelist:
-            remove(f)
-
-        filelist = [f for f in glob(path.join(HERE, 'data', 'screenshots', 'ocr', '*.*'))]
-        for f in filelist:
-            remove(f)
+        # filelist = [f for f in glob(path.join(HERE, 'data', 'screenshots', '*.*'))]
+        # for f in filelist:
+        #     remove(f)
+        #
+        # filelist = [f for f in glob(path.join(HERE, 'data', 'screenshots', 'ocr', '*.*'))]
+        # for f in filelist:
+        #     remove(f)
 
     def clear_decisions(self):
         self.decisions = {}
@@ -970,38 +1005,42 @@ class Game(object):
         self.set_decisions_first_round()
 
     def process_screen(self):
-        logger.debug(' ')
-        logger.debug(f'process_screen started time = {time}')
+        # logger.debug(' ')
+
         time = datetime.now().strftime(FORMAT_STRING)
-        game.wait_for_bet_button()
+        logger.debug(f'############# started time = {time} #############')
+        self.wait_for_bet_button()
 
-        game.set_community_cards()
-        game.set_current_street()
+        self.set_community_cards()
+        self.set_streets()
 
-        current_street = game.get_current_street()
-        street_of_previous_round = game.get_street_of_previous_round()
+        current_street = self.get_current_street()
+        logger.debug(f'############# {current_street.value} #############')
+        street_of_previous_round = self.get_street_of_previous_round()
+        logger.debug(f'street_of_previous_round {street_of_previous_round.value if street_of_previous_round is not None else None}')
+
         # print('!!! 2 game.full_pot = ', game.full_pot)
         if current_street == Street.PREFLOP and street_of_previous_round != Street.PREFLOP:
             print('GAME IS STARTED!')
-            game.start()
+            self.start()
 
         # set up logger
         # print('!!! current street = ', current_street)
 
-        if current_street != street_of_previous_round:
-            setup_logger(current_street.value, path.join(HERE, 'logs', f'{current_street.value}_{time}.log'))
+        # if current_street != street_of_previous_round:
+        #     setup_logger(current_street.value, path.join(HERE, 'logs', f'{current_street.value}_{time}.log'))
         # read game data from screen
 
-        game.set_player_cards()
-        game.set_button_position()
-        game.set_bets()
-        game.set_folded_players_all()
-        game.set_full_pot()
+        self.set_player_cards()
+        self.set_button_position()
+        self.set_bets()
+        self.set_folded_players_all()
+        self.set_full_pot()
 
         pyautogui.screenshot(path.join(HERE, 'logs', f'{current_street.value}_{time}.png'))
 
-        logger.debug(f'current street {current_street.value}')
-        logger.debug(f'previous street {street_of_previous_round.value}')
+        # logger.debug(f'current street {current_street.value}')
+        # logger.debug(f'previous street {street_of_previous_round.value}')
 
         print(current_street.value)
         # print('round = ', n_round)
@@ -1009,12 +1048,12 @@ class Game(object):
         # street_of_previous_round = self.get_street_of_previous_round()
 
         if current_street == Street.PREFLOP and street_of_previous_round is None:
-            game.set_decisions_first_round()
+            self.set_decisions_first_round()
         else:
             if current_street != street_of_previous_round:
-                game.set_decisions_after_changing_street()
+                self.set_decisions_after_changing_street()
             else:
-                game.set_decisions_all_players()
+                self.set_decisions_all_players()
 
 
 def get_decision_for_AI(self, player_id):
@@ -1041,6 +1080,10 @@ def get_decision_for_AI(self, player_id):
 
 if __name__ == '__main__':
 
+    def A():
+        logger.debug('pa-pa-pa')
+    A()
+    assert 1==2
     # ss = pygetwindow.getWindowsWithTitle("No Limit Hold'em")[0]
     # print('ss = ', ss)
     # ss.activate()

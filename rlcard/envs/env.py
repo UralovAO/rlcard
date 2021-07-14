@@ -2,6 +2,8 @@ from rlcard.utils import *
 
 from gamereader import reader
 
+IS_READER = False
+
 class Env(object):
     '''
     The base Env class. For all the environments in RLCard,
@@ -187,28 +189,46 @@ class Env(object):
             raise ValueError('Run in single agent not allowed.')
 
         trajectories = [[] for _ in range(self.player_num)]
-        input(f'>> Модель загружена. Для продолжения нажмите любую клавишу')
-        # gamereader
-        screen = reader.Screen()
-        screen.set_work_position()
-        game = reader.Game()
-        game.process_screen()
-        print('!!! env.run button_position', game.get_button_position())
-        # self.game.dealer_id = int(input(f'>> Input dealer_id:'))
-        self.game.dealer_id = game.get_button_position()
+        if IS_READER
+            input(f'>> Модель загружена. Для продолжения нажмите клавишу Enter')
+            # gamereader
+            reader.logger.debug('!!! env run')
+            screen = reader.Screen()
+            screen.set_work_position()
+            reader_game = reader.Game()
+            reader_game.process_screen()
+
+            print('!!! env.run button_position', reader_game.get_button_position())
+
+            self.game.reader_game = reader_game
+            self.game.dealer_id = reader_game.get_button_position()
+        else:
+            self.game.dealer_id = int(input(f'>> Input dealer_id:'))
         state, player_id = self.reset()
+
+        print(f'!!! state = {state}')  # self.stage = Stage.FLOP
+        print(f'!!! player_id = {player_id}')  # self.stage = Stage.FLOP
 
         # Loop to play the game
         trajectories[player_id].append(state)
+        n = 0
         while not self.is_over():
-            print('!!! ', self.game.stage) # self.stage = Stage.FLOP
+            n = n + 1
+            print(' ')
+            print(f'!!! {n} self.game.stage = {self.game.stage}') # self.stage = Stage.FLOP
+            print(f'!!! {n} player_id = {player_id}')
+            print(f'!!! {n} state = {state}')
+
             # Agent plays
             if not is_training:
                 action, _ = self.agents[player_id].eval_step(state)
             else:
                 action = self.agents[player_id].step(state)
+                print(f'!!! {n} action = {action}')
             # Environment steps
             next_state, next_player_id = self.step(action, self.agents[player_id].use_raw)
+            print(f'!!! {n} next_state = {next_state}')
+            print(f'!!! {n} next_player_id = {next_player_id}')
             # Save action
             trajectories[player_id].append(action)
             # print('next_state = ', next_state)
