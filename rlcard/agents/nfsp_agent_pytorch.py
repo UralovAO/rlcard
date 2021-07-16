@@ -185,7 +185,7 @@ class NFSPAgent(object):
 
         return action
 
-    def eval_step(self, state):
+    def eval_step(self, state, reader_game):
         ''' Use the average policy for evaluation purpose
 
         Args:

@@ -1,8 +1,9 @@
 from rlcard.utils import *
-
 from gamereader import reader
+import logging
 
-IS_READER = False
+logger = logging.getLogger(__name__)
+IS_READER = True
 
 class Env(object):
     '''
@@ -192,13 +193,13 @@ class Env(object):
         if IS_READER:
             input(f'>> Модель загружена. Для продолжения нажмите клавишу Enter')
             # gamereader
-            reader.logger.debug('!!! env run')
+
             screen = reader.Screen()
             screen.set_work_position()
             reader_game = reader.Game()
             reader_game.process_screen()
 
-            print('!!! env.run button_position', reader_game.get_button_position())
+            logger.debug(f'reader_game button_position = {reader_game.get_button_position()}')
 
             self.game.reader_game = reader_game
             self.game.dealer_id = reader_game.get_button_position()
@@ -221,7 +222,7 @@ class Env(object):
 
             # Agent plays
             if not is_training:
-                reader_game = None
+                # reader_game = None
                 action, _ = self.agents[player_id].eval_step(state, reader_game)
                 print(f'!!! {n} action = {action}')
             else:

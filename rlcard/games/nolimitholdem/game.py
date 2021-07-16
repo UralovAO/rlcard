@@ -13,7 +13,7 @@ from rlcard.games.nolimitholdem import Round, Action
 from rlcard.core import Card
 from rlcard.utils.utils import take_out_cards
 
-IS_READER = False
+IS_READER = True
 
 class Stage(Enum):
 

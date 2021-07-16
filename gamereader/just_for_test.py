@@ -1,7 +1,4 @@
-class A(object):
-    def s(self):
-        print('__s')
-
-
-a = A()
-a.s()
+import logging
+logger = logging.getLogger(__name__)
+def A():
+    logger.debug('inner')

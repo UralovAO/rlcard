@@ -1,5 +1,8 @@
 from rlcard.utils.utils import print_card
 
+from gamereader import reader
+import logging
+logger = logging.getLogger(__name__)
 
 class HumanAgent(object):
     ''' A human agent for No Limit Holdem. It can be used to play against trained models
@@ -14,6 +17,8 @@ class HumanAgent(object):
         self.use_raw = True
         self.action_num = action_num
 
+
+
     @staticmethod
     def step(state, reader_game):
         ''' Human agent will display the state and make decisions through interfaces
@@ -24,11 +29,17 @@ class HumanAgent(object):
         Returns:
             action (int): The action decided by human
         '''
+
+        def get_action_from_reader(reader_game, player_id):
+            reader_action = reader_game.get_action_for_AI(player_id)
+            logger.debug(f'reader_action = {reader_action}')
+
         print('#### step state = ', state)
+        print('#### step reader_game.get_actions_current_street() = ', reader_game.get_actions_current_street())
         _print_state(state['raw_obs'], state['action_record'])
         player_id = state['raw_obs']['current_player']
         print('#### step player_id = ', player_id)
-
+        get_action_from_reader(reader_game, player_id)
         action = int(input('>> You choose action (integer): '))
         while action < 0 or action >= len(state['legal_actions']):
             print('Action illegel...')
