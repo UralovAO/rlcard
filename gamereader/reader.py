@@ -25,7 +25,7 @@ FORMAT_STRING = "%H-%M-%S"
 
 from enum import Enum
 
-class Decision(Enum):
+class Action(Enum):
     FOLD = 'FOLD'
     CHECK = 'CHECK'
     CALL = 'CALL'
@@ -443,7 +443,7 @@ class Game(object):
             active_players.sort(reverse=True)
             # logger.debug(f'!!! set_bet_by_decision active_players = {active_players}')
             self.bets[player_id] = self.bets[active_players[0]]
-        elif self.decisions_current_street[player_id] == Decision.CHECK:
+        elif self.decisions_current_street[player_id] == Action.CHECK:
             if self.get_current_street() == Street.PREFLOP:
                 if (button + 1) % 6 == player_id:
                     self.bets[player_id] = BLIND
@@ -453,11 +453,11 @@ class Game(object):
                     self.bets[player_id] = 0
             else:
                 self.bets[player_id] = 0
-        elif self.decisions_current_street[player_id] == Decision.RAISE_HALF_POT:
+        elif self.decisions_current_street[player_id] == Action.RAISE_HALF_POT:
             self.bets[player_id] = full_pot / 2
-        elif self.decisions_current_street[player_id] == Decision.RAISE_POT:
+        elif self.decisions_current_street[player_id] == Action.RAISE_POT:
             self.bets[player_id] = full_pot
-        elif self.decisions_current_street[player_id] == Decision.ALL_IN:
+        elif self.decisions_current_street[player_id] == Action.ALL_IN:
             self.bets[player_id] = BLIND * 2 * 100
 
         # logger.debug(f'!!! set_bet_by_decision self.decisions[player_id] = {self.decisions_current_street[player_id]}')
@@ -687,22 +687,22 @@ class Game(object):
                 logger.debug(f'set_decisions_all_players CYCLE player {player_id} NO DECISION because he folded before')
                 continue
             elif player_id in folded_players_current_round:
-                self.decisions_current_street[player_id] = self.__make_decision_dict(Decision.FOLD)
+                self.decisions_current_street[player_id] = self.__make_decision_dict(Action.FOLD)
             elif bets[player_id] == 0:
-                self.decisions_current_street[player_id] = self.__make_decision_dict(Decision.CHECK)
-            elif self.decisions_current_street is not None and Decision.ALL_IN in [x['decision'] for x in
+                self.decisions_current_street[player_id] = self.__make_decision_dict(Action.CHECK)
+            elif self.decisions_current_street is not None and Action.ALL_IN in [x['decision'] for x in
                                                                                    self.decisions_current_street.values()]:
-                self.decisions_current_street[player_id] = self.__make_decision_dict(Decision.CALL)
+                self.decisions_current_street[player_id] = self.__make_decision_dict(Action.CALL)
             elif bets[player_id] == previous_bet:
-                self.decisions_current_street[player_id] = self.__make_decision_dict(Decision.CALL)
+                self.decisions_current_street[player_id] = self.__make_decision_dict(Action.CALL)
             elif bets[player_id] > previous_bet and bets[player_id] <= (3 * pot / 4):
-                self.decisions_current_street[player_id] = self.__make_decision_dict(Decision.RAISE_HALF_POT)
+                self.decisions_current_street[player_id] = self.__make_decision_dict(Action.RAISE_HALF_POT)
                 previous_bet = bets[player_id]
             elif bets[player_id] > (3 * pot / 4) and bets[player_id] <= pot + (100 * 2 * BLIND - pot) / 2:
-                self.decisions_current_street[player_id] = self.__make_decision_dict(Decision.RAISE_POT)
+                self.decisions_current_street[player_id] = self.__make_decision_dict(Action.RAISE_POT)
                 previous_bet = bets[player_id]
             elif bets[player_id] > pot + (100 * 2 * BLIND - pot) / 2:
-                self.decisions_current_street[player_id] = self.__make_decision_dict(Decision.ALL_IN)
+                self.decisions_current_street[player_id] = self.__make_decision_dict(Action.ALL_IN)
                 previous_bet = bets[player_id]
                 # is_previous_allin = True
             else:
@@ -781,21 +781,21 @@ class Game(object):
 
             logger.debug(f'set_decisions_first_round CYCLE pot = {pot}')
             if player_id in folded_players_current_round:
-                self.decisions_current_street[player_id] = self.__make_decision_dict(Decision.FOLD)
+                self.decisions_current_street[player_id] = self.__make_decision_dict(Action.FOLD)
             elif bets[player_id] == 0:
-                self.decisions_current_street[player_id] = self.__make_decision_dict(Decision.CHECK)
-            elif self.decisions_current_street is not None and Decision.ALL_IN in [x['decision'] for x in self.decisions_current_street.values()]:
-                self.decisions_current_street[player_id] = self.__make_decision_dict(Decision.CALL)
+                self.decisions_current_street[player_id] = self.__make_decision_dict(Action.CHECK)
+            elif self.decisions_current_street is not None and Action.ALL_IN in [x['decision'] for x in self.decisions_current_street.values()]:
+                self.decisions_current_street[player_id] = self.__make_decision_dict(Action.CALL)
             elif bets[player_id] == previous_bet:
-                self.decisions_current_street[player_id] = self.__make_decision_dict(Decision.CALL)
+                self.decisions_current_street[player_id] = self.__make_decision_dict(Action.CALL)
             elif bets[player_id] > previous_bet and bets[player_id] <= (3 * pot / 4):
-                self.decisions_current_street[player_id] = self.__make_decision_dict(Decision.RAISE_HALF_POT)
+                self.decisions_current_street[player_id] = self.__make_decision_dict(Action.RAISE_HALF_POT)
                 previous_bet = bets[player_id]
             elif bets[player_id] > (3 * pot / 4) and bets[player_id] <= pot + (100 * 2 * BLIND - pot) / 2:
-                self.decisions_current_street[player_id] = self.__make_decision_dict(Decision.RAISE_POT)
+                self.decisions_current_street[player_id] = self.__make_decision_dict(Action.RAISE_POT)
                 previous_bet = bets[player_id]
             elif bets[player_id] > pot + (100 * 2 * BLIND - pot) / 2:
-                self.decisions_current_street[player_id] = self.__make_decision_dict(Decision.ALL_IN)
+                self.decisions_current_street[player_id] = self.__make_decision_dict(Action.ALL_IN)
                 previous_bet = bets[player_id]
                 # is_previous_allin = True
             else:
@@ -872,15 +872,15 @@ class Game(object):
         player_id_list = list(previous_decisions_current_street.keys())
         player_id_list.sort(reverse=True)
         for player_id in player_id_list:
-            if previous_decisions_current_street[player_id]['decision'] in [Decision.RAISE_POT, Decision.RAISE_HALF_POT,
-                                                                            Decision.ALL_IN]:
+            if previous_decisions_current_street[player_id]['decision'] in [Action.RAISE_POT, Action.RAISE_HALF_POT,
+                                                                            Action.ALL_IN]:
                 # print('!!! previous_decisions_current_street[player_id] = ',
             #       previous_decisions_current_street[player_id])
 
             # print('!!! previous_decisions_current_street[player_id][decision] = ', previous_decisions_current_street[player_id]['decision'])
-            # if previous_decisions_current_street[player_id]['decision'] == Decision.RAISE_POT or \
-            #         previous_decisions_current_street[player_id]['decision'] == Decision.RAISE_HALF_POT or \
-            #         previous_decisions_current_street[player_id]['decision'] == Decision.ALL_IN:
+            # if previous_decisions_current_street[player_id]['decision'] == Action.RAISE_POT or \
+            #         previous_decisions_current_street[player_id]['decision'] == Action.RAISE_HALF_POT or \
+            #         previous_decisions_current_street[player_id]['decision'] == Action.ALL_IN:
                 end_position = player_id - 1
                 break
         if end_position is None: # None of players raised
@@ -904,7 +904,7 @@ class Game(object):
                 continue
             elif player_id in folded_players_current_round:
                 folded_players_all_before_current_street.append(player_id)
-                self.decisions_previous_street[player_id] = self.__make_decision_dict(Decision.FOLD, previous_street)
+                self.decisions_previous_street[player_id] = self.__make_decision_dict(Action.FOLD, previous_street)
             # below FOLD is defenitly in previous street
             # elif player_id in folded_players_current_round and player_id <= button_position:
             #     num_folded_players_previous_street_current_screen -= 1
@@ -919,13 +919,13 @@ class Game(object):
             #     folded_players_all_before_current_street.append(player_id)
             #     self.previous_decisions[player_id] = 'FOLD'
             elif self.get_previous_bets()[0] == 0: # this is bet of us (player № 0). If our bet = 0 and street has changed then all players after us made CHECK
-                self.decisions_previous_street[player_id] = self.__make_decision_dict(Decision.CHECK, previous_street)
+                self.decisions_previous_street[player_id] = self.__make_decision_dict(Action.CHECK, previous_street)
             # elif not pot_previous_street_current_screen > 0:
             #     self.previous_decisions[player_id] = 'CHECK'
             elif current_street == Street.FLOP and player_id == (button_position + 2) % 6 and end_position == (button_position + 2) % 6:  # player on big blind on preflop
-                self.decisions_previous_street[player_id] = self.__make_decision_dict(Decision.CHECK, previous_street)
+                self.decisions_previous_street[player_id] = self.__make_decision_dict(Action.CHECK, previous_street)
             else:
-                self.decisions_previous_street[player_id] = self.__make_decision_dict(Decision.CALL, previous_street)
+                self.decisions_previous_street[player_id] = self.__make_decision_dict(Action.CALL, previous_street)
 
             logger.debug(f'set_decisions_after_changing_street CYCLE self.decisions_previous_street = {self.decisions_previous_street}')
 
@@ -948,21 +948,21 @@ class Game(object):
                 logger.debug(f'set_decisions_all_players CYCLE player {player_id} NO DECISION because he folded before')
                 continue
             elif player_id in folded_players_current_round:
-                self.decisions_current_street[player_id] = self.__make_decision_dict(Decision.FOLD)
+                self.decisions_current_street[player_id] = self.__make_decision_dict(Action.FOLD)
             elif bets[player_id] == 0:
-                self.decisions_current_street[player_id] = self.__make_decision_dict(Decision.CHECK)
-            elif self.decisions_current_street is not None and Decision.ALL_IN in [x['decision'] for x in self.decisions_current_street.values()]:
-                self.decisions_current_street[player_id] = self.__make_decision_dict(Decision.CALL)
+                self.decisions_current_street[player_id] = self.__make_decision_dict(Action.CHECK)
+            elif self.decisions_current_street is not None and Action.ALL_IN in [x['decision'] for x in self.decisions_current_street.values()]:
+                self.decisions_current_street[player_id] = self.__make_decision_dict(Action.CALL)
             elif bets[player_id] == previous_bet:
-                self.decisions_current_street[player_id] = self.__make_decision_dict(Decision.CALL)
+                self.decisions_current_street[player_id] = self.__make_decision_dict(Action.CALL)
             elif bets[player_id] > previous_bet and bets[player_id] <= (3 * pot / 4):
-                self.decisions_current_street[player_id] = self.__make_decision_dict(Decision.RAISE_HALF_POT)
+                self.decisions_current_street[player_id] = self.__make_decision_dict(Action.RAISE_HALF_POT)
                 previous_bet = bets[player_id]
             elif bets[player_id] > (3 * pot / 4) and bets[player_id] <= pot + (100 * 2 * BLIND - pot) / 2:
-                self.decisions_current_street[player_id] = self.__make_decision_dict(Decision.RAISE_POT)
+                self.decisions_current_street[player_id] = self.__make_decision_dict(Action.RAISE_POT)
                 previous_bet = bets[player_id]
             elif bets[player_id] > pot + (100 * 2 * BLIND - pot) / 2:
-                self.decisions_current_street[player_id] = self.__make_decision_dict(Decision.ALL_IN)
+                self.decisions_current_street[player_id] = self.__make_decision_dict(Action.ALL_IN)
                 previous_bet = bets[player_id]
                 # is_previous_allin = True
             else:
@@ -1159,11 +1159,11 @@ if __name__ == '__main__':
             # temp answer is CALL
             button = game.get_button_position()
             if current_street == Street.PREFLOP and n_round == 1 and (button + 2) % 6 == 0:
-                game.set_decision_current_street(PLAYER, Decision.CHECK)
+                game.set_decision_current_street(PLAYER, Action.CHECK)
             elif current_street != Street.PREFLOP and (button + 1) % 6 == 0:
-                game.set_decision_current_street(PLAYER, Decision.CHECK)
+                game.set_decision_current_street(PLAYER, Action.CHECK)
             else:
-                game.set_decision_current_street(PLAYER, Decision.CALL)
+                game.set_decision_current_street(PLAYER, Action.CALL)
 
             game.set_bet_by_decision()
 

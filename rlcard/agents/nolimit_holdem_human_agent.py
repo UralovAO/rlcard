@@ -15,7 +15,7 @@ class HumanAgent(object):
         self.action_num = action_num
 
     @staticmethod
-    def step(state):
+    def step(state, reader_game):
         ''' Human agent will display the state and make decisions through interfaces
 
         Args:
@@ -24,14 +24,18 @@ class HumanAgent(object):
         Returns:
             action (int): The action decided by human
         '''
+        print('#### step state = ', state)
         _print_state(state['raw_obs'], state['action_record'])
+        player_id = state['raw_obs']['current_player']
+        print('#### step player_id = ', player_id)
+
         action = int(input('>> You choose action (integer): '))
         while action < 0 or action >= len(state['legal_actions']):
             print('Action illegel...')
             action = int(input('>> Re-choose action (integer): '))
         return state['raw_legal_actions'][action]
 
-    def eval_step(self, state):
+    def eval_step(self, state, reader_game):
         ''' Predict the action given the curent state for evaluation. The same to step here.
 
         Args:
@@ -41,7 +45,7 @@ class HumanAgent(object):
             action (int): the action predicted (randomly chosen) by the random agent
             probs (list): The list of action probabilities
         '''
-        return self.step(state), []
+        return self.step(state, reader_game), []
 
 def _print_state(state, action_record):
     ''' Print out the state

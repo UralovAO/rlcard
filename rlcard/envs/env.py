@@ -189,7 +189,7 @@ class Env(object):
             raise ValueError('Run in single agent not allowed.')
 
         trajectories = [[] for _ in range(self.player_num)]
-        if IS_READER
+        if IS_READER:
             input(f'>> Модель загружена. Для продолжения нажмите клавишу Enter')
             # gamereader
             reader.logger.debug('!!! env run')
@@ -206,8 +206,8 @@ class Env(object):
             self.game.dealer_id = int(input(f'>> Input dealer_id:'))
         state, player_id = self.reset()
 
-        print(f'!!! state = {state}')  # self.stage = Stage.FLOP
-        print(f'!!! player_id = {player_id}')  # self.stage = Stage.FLOP
+        # print(f'!!! state = {state}')  # self.stage = Stage.FLOP
+        # print(f'!!! player_id = {player_id}')  # self.stage = Stage.FLOP
 
         # Loop to play the game
         trajectories[player_id].append(state)
@@ -221,10 +221,12 @@ class Env(object):
 
             # Agent plays
             if not is_training:
-                action, _ = self.agents[player_id].eval_step(state)
+                reader_game = None
+                action, _ = self.agents[player_id].eval_step(state, reader_game)
+                print(f'!!! {n} action = {action}')
             else:
                 action = self.agents[player_id].step(state)
-                print(f'!!! {n} action = {action}')
+
             # Environment steps
             next_state, next_player_id = self.step(action, self.agents[player_id].use_raw)
             print(f'!!! {n} next_state = {next_state}')
