@@ -13,6 +13,10 @@ from rlcard.games.nolimitholdem import Round, Action
 from rlcard.core import Card
 from rlcard.utils.utils import take_out_cards
 
+import logging
+import sys
+logger = logging.getLogger(__name__)
+
 IS_READER = True
 
 class Stage(Enum):
@@ -62,20 +66,74 @@ class NolimitholdemGame(Game):
 
     def get_player_cards_from_reader(self):
         reader_cards = self.reader_game.get_player_cards()
-        print('!!!### reader_cards = ', reader_cards)
         suit_rank_card_0 = reader_cards[0]
         suit_rank_card_0 = suit_rank_card_0.upper()
-        print('!!!### suit_rank_card_0 = ', suit_rank_card_0)
         card_0 = Card(suit_rank_card_0[0], suit_rank_card_0[1])
-        print('!!!### card_0 = ', card_0.get_index())
+
+        if card_0 is None:
+            sys.exit('get_player_cards_from_reader card_0 is None')
+
 
         suit_rank_card_1 = reader_cards[1]
         suit_rank_card_1 = suit_rank_card_1.upper()
-        print('!!!### suit_rank_card_1 = ', suit_rank_card_1)
         card_1 = Card(suit_rank_card_1[0], suit_rank_card_1[1])
-        print('!!!### card_1 = ', card_1.get_index())
+
+        if card_1 is None:
+            sys.exit('get_player_cards_from_reader card_1 is None')
+
 
         return [card_0, card_1]
+
+    def get_flop_cards_from_reader(self):
+        reader_cards = self.reader_game.get_flop_cards()
+
+        suit_rank_card_0 = reader_cards[0]
+        suit_rank_card_0 = suit_rank_card_0.upper()
+        card_0 = Card(suit_rank_card_0[0], suit_rank_card_0[1])
+
+        if card_0 is None:
+            sys.exit('get_flop_cards_from_reader card_0 is None')
+
+        suit_rank_card_1 = reader_cards[1]
+        suit_rank_card_1 = suit_rank_card_1.upper()
+        card_1 = Card(suit_rank_card_1[0], suit_rank_card_1[1])
+
+        if card_1 is None:
+            sys.exit('get_flop_cards_from_reader card_1 is None')
+
+        suit_rank_card_2 = reader_cards[2]
+        suit_rank_card_2 = suit_rank_card_2.upper()
+        card_2 = Card(suit_rank_card_2[0], suit_rank_card_2[1])
+
+        if card_2 is None:
+            sys.exit('get_flop_cards_from_reader card_2 is None')
+
+
+        return [card_0, card_1, card_2]
+
+    def get_river_cards_from_reader(self):
+        reader_cards = self.reader_game.get_river_cards()
+
+        suit_rank_card_0 = reader_cards[0]
+        suit_rank_card_0 = suit_rank_card_0.upper()
+        card_0 = Card(suit_rank_card_0[0], suit_rank_card_0[1])
+
+        if card_0 is None:
+            sys.exit('get_river_cards_from_reader card_0 is None')
+
+        return card_0
+
+    def get_turn_cards_from_reader(self):
+        reader_cards = self.reader_game.get_turn_cards()
+
+        suit_rank_card_0 = reader_cards[0]
+        suit_rank_card_0 = suit_rank_card_0.upper()
+        card_0 = Card(suit_rank_card_0[0], suit_rank_card_0[1])
+
+        if card_0 is None:
+            sys.exit('get_turn_cards_from_reader card_0 is None')
+
+        return card_0
 
     def init_game(self):
         ''' Initialilze the game of Limit Texas Hold'em
@@ -119,6 +177,9 @@ class NolimitholdemGame(Game):
                     take_out_cards(self.dealer.deck, [card])
             else:
                 self.players[index_player].hand.append(self.dealer.deal_card())
+
+        for idx, player in enumerate(self.players):
+            logger.debug(f'player {idx} hand = {player.hand}')
 
         # for card in self.players[0].hand:
         #     print('!!!####3', card.get_index())
@@ -209,13 +270,19 @@ class NolimitholdemGame(Game):
             # For the first round, we deal 3 cards
             if self.round_counter == 0:
                 self.stage = Stage.FLOP
-                card1 = self.input_card('FLOP. Input suit and rank of card:')
-                card2 = self.input_card('FLOP. Input suit and rank of card:')
-                card3 = self.input_card('FLOP. Input suit and rank of card:')
-                take_out_cards(self.dealer.deck, [card1, card2, card3])
+
+                if IS_READER:
+                    [card0, card1, card2] = self.get_flop_cards_from_reader()
+                    take_out_cards(self.dealer.deck, [card0, card1, card2].copy())
+                else:
+                    card0 = self.input_card('FLOP. Input suit and rank of card:')
+                    card1 = self.input_card('FLOP. Input suit and rank of card:')
+                    card2 = self.input_card('FLOP. Input suit and rank of card:')
+                    take_out_cards(self.dealer.deck, [card0, card1, card2])
+
+                self.public_cards.append(card0)
                 self.public_cards.append(card1)
                 self.public_cards.append(card2)
-                self.public_cards.append(card3)
 
                 # self.public_cards.append(self.dealer.deal_card())
                 # self.public_cards.append(self.dealer.deal_card())
@@ -226,8 +293,12 @@ class NolimitholdemGame(Game):
             if self.round_counter == 1:
                 self.stage = Stage.TURN
 
-                card = self.input_card('TURN. Input suit and rank of card:')
-                take_out_cards(self.dealer.deck, [card])
+                if IS_READER:
+                    card = self.get_turn_cards_from_reader()
+                else:
+                    card = self.input_card('TURN. Input suit and rank of card:')
+
+                take_out_cards(self.dealer.deck, [card].copy())
                 self.public_cards.append(card)
 
                 # self.public_cards.append(self.dealer.deal_card())
@@ -236,12 +307,18 @@ class NolimitholdemGame(Game):
             if self.round_counter == 2:
                 self.stage = Stage.RIVER
 
-                card = self.input_card('RIVER. Input suit and rank of card:')
-                take_out_cards(self.dealer.deck, [card])
+                if IS_READER:
+                    card = self.get_river_cards_from_reader()
+                else:
+                    card = self.input_card('RIVER. Input suit and rank of card:')
+
+                take_out_cards(self.dealer.deck, [card].copy())
                 self.public_cards.append(card)
                 # self.public_cards.append(self.dealer.deal_card())
                 if len(self.players) == np.sum(players_in_bypass):
                     self.round_counter += 1
+
+            logger.debug('self.public_cards = ', self.public_cards)
 
             self.round_counter += 1
             self.round.start_new_round(self.game_pointer)

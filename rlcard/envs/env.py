@@ -212,26 +212,35 @@ class Env(object):
 
         # Loop to play the game
         trajectories[player_id].append(state)
-        n = 0
+        # n = 0
         while not self.is_over():
-            n = n + 1
-            print(' ')
-            print(f'!!! {n} self.game.stage = {self.game.stage}') # self.stage = Stage.FLOP
-            print(f'!!! {n} player_id = {player_id}')
-            print(f'!!! {n} state = {state}')
-
+            logger.debug(' ')
+            # n = n + 1
+            # print(' ')
+            # print(f'!!! {n} self.game.stage = {self.game.stage}') # self.stage = Stage.FLOP
+            # print(f'!!! {n} player_id = {player_id}')
+            # print(f'!!! {n} state = {state}')
+            logger.debug(f'player_id = {player_id}')
             # Agent plays
             if not is_training:
                 # reader_game = None
                 action, _ = self.agents[player_id].eval_step(state, reader_game)
-                print(f'!!! {n} action = {action}')
+                logger.debug(f'action = {action}')
+                if player_id == 0:
+                    # print('YOUR ACTION', state['raw_legal_actions'][action])
+                    print('YOUR ACTION ', self._decode_action(action))
+                    logger.debug(f'YOUR ACTION {self._decode_action(action)}')
+                    reader_game.wait_for_player_bet() # we have to press button with decision and then bet button will disappear and then we can continue
+                    # reader_game.postprocess_screen(state['raw_legal_actions'][action])
+                    reader_game.postprocess_screen(self._decode_action(action))
             else:
                 action = self.agents[player_id].step(state)
 
             # Environment steps
+            # logger.debug(f'self.agents[player_id].use_raw = {self.agents[player_id].use_raw}')
             next_state, next_player_id = self.step(action, self.agents[player_id].use_raw)
-            print(f'!!! {n} next_state = {next_state}')
-            print(f'!!! {n} next_player_id = {next_player_id}')
+            # print(f'!!! {n} next_state = {next_state}')
+            # print(f'!!! {n} next_player_id = {next_player_id}')
             # Save action
             trajectories[player_id].append(action)
             # print('next_state = ', next_state)

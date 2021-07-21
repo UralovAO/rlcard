@@ -5,8 +5,15 @@ from rlcard.agents import NolimitholdemHumanAgent as HumanAgent
 from rlcard.utils import print_card
 import torch
 from rlcard.agents.nfsp_agent_pytorch import NFSPAgent
+from glob import glob
+from os import path, remove
 
 HERE = path.abspath(path.dirname(__file__))
+
+# clear previous logs
+filelist = [f for f in glob(path.join(HERE, 'logs', '*.*'))]
+for f in filelist:
+    remove(f)
 
 logging.basicConfig(filename=path.join(HERE, 'logs', 'log.txt'),
                     format='%(asctime)s %(name)s %(funcName)s %(message)s',

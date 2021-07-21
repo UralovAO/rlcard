@@ -376,6 +376,7 @@ class Game(object):
         self.actions_previous_street = {}
         self.previous_actions_previous_street = {}
         self.previous_actions_current_street = {}
+        self.street_of_previous_round = None
 
     def debug(self, message):
         current_street = self.get_current_street()
@@ -437,7 +438,8 @@ class Game(object):
         player_id = 0
         button = self.get_button_position()
         full_pot = self.get_full_pot()
-        if self.actions_current_street[player_id] == 'CALL':
+        logger.debug(f'full_pot = {full_pot}')
+        if self.actions_current_street[player_id] == Action.CALL:
             # since we CALL we need previous player with bet
             folded_players_current_round = self.get_folded_players_current_round()
             active_players = list(set(self.bets.keys()) - set(folded_players_current_round))
@@ -461,6 +463,7 @@ class Game(object):
         elif self.actions_current_street[player_id] == Action.ALL_IN:
             self.bets[player_id] = BLIND * 2 * 100
 
+        logger.debug(f'self.bets[player_id] = {self.bets[player_id]}')
         # logger.debug(f'!!! set_bet_by_action self.actions[player_id] = {self.actions_current_street[player_id]}')
         # logger.debug(f'!!! set_bet_by_action self.bets[player_id] = {self.bets[player_id]}')
 
@@ -572,8 +575,11 @@ class Game(object):
         self.flop_cards = screen.get_flop_cards()
 
     def set_streets(self):
+        # logger.debug(f'self.street_of_previous_round = {self.street_of_previous_round}')
+        # logger.debug(f'self.current_street = {self.current_street}')
 
         self.street_of_previous_round = self.current_street
+
 
         if self.river_card is not None:
             self.current_street = Street.RIVER
@@ -586,13 +592,15 @@ class Game(object):
                 else:
                     self.current_street = Street.PREFLOP
 
+        # logger.debug(f'self.street_of_previous_round = {self.street_of_previous_round}')
+        # logger.debug(f'self.current_street = {self.current_street}')
 
 
     def get_current_street(self):
         return self.current_street
 
     def get_street_of_previous_round(self):
-        self.street_of_previous_round
+        return self.street_of_previous_round
 
     def get_previous_street(self):
         current_street = self.get_current_street()
@@ -714,8 +722,22 @@ class Game(object):
         # print(' ')
         pass
 
-    def set_action_current_street(self, player_id, action):
-        self.actions_current_street[player_id] = self.__make_action_dict(action)
+    def set_action_current_street(self, AI_action):
+        # made only for player_id = 0
+        if str(AI_action) == 'Action.FOLD':
+            action = Action.FOLD
+        elif str(AI_action) == 'Action.CHECK':
+            action = Action.CHECK
+        elif str(AI_action) == 'Action.CALL':
+            action = Action.CALL
+        elif str(AI_action) == 'Action.RAISE_HALF_POT':
+            action = Action.RAISE_HALF_POT
+        elif str(AI_action) == 'Action.RAISE_POT':
+            action = Action.RAISE_POT
+        elif str(AI_action) == 'Action.ALL_IN':
+            action = Action.ALL_IN
+
+        self.actions_current_street[PLAYER] = self.__make_action_dict(action)
 
     def get_actions_current_street(self):
         return self.actions_current_street
@@ -732,6 +754,8 @@ class Game(object):
     def get_previous_actions_previous_street(self):
         return self.previous_actions_previous_street
 
+    def get_actions_previous_street(self):
+        return self.actions_previous_street
 
     def set_previous_bets(self):
         self.previous_bets = self.bets
@@ -854,7 +878,7 @@ class Game(object):
         # logger.debug(f'set_actions_after_changing_street current_street_pot = {current_street_pot}')
         # logger.debug(f'set_actions_after_changing_street pot_previous_street_current_screen = {pot_previous_street_current_screen}')
         # logger.debug(f'set_actions_after_changing_street bet_previous_street_current_screen = {bet_previous_street_current_screen}')
-        logger.debug(f'folded_players_all_before_current_round = {folded_players_all_before_current_round}')
+        # logger.debug(f'folded_players_all_before_current_round = {folded_players_all_before_current_round}')
         # logger.debug(f'set_actions_after_changing_street pot_commission_value = {pot_commission_value}')
         # logger.debug(f'calculate_actions_after_changing_street folded_players = ', num_folded_players_previous_round_after_player)
 
@@ -870,6 +894,12 @@ class Game(object):
         logger.debug(f'previous_actions_current_street = {previous_actions_current_street}')
         # logger.debug(f'set_actions_after_changing_street previous_actions_previous_street = {previous_actions_previous_street}')
         end_position = None
+
+        previous_actions_current_street[6] = previous_actions_current_street[0] # player with id 0 must be the first in cycle below
+        del previous_actions_current_street[0]
+
+        logger.debug(f'0 to 6 previous_actions_current_street = {previous_actions_current_street}')
+
         player_id_list = list(previous_actions_current_street.keys())
         player_id_list.sort(reverse=True)
         for player_id in player_id_list:
@@ -1006,7 +1036,7 @@ class Game(object):
         self.set_actions_first_round()
 
     def process_screen(self):
-        # logger.debug(' ')
+        logger.debug('\n')
 
         time = datetime.now().strftime(FORMAT_STRING)
         logger.debug(f'############# started time = {time} #############')
@@ -1018,10 +1048,13 @@ class Game(object):
         current_street = self.get_current_street()
         logger.debug(f'############# {current_street.value} #############')
         street_of_previous_round = self.get_street_of_previous_round()
+        # logger.debug(f'street_of_previous_round {self.street_of_previous_round}')
+        # logger.debug(f'street_of_previous_round {street_of_previous_round}')
         logger.debug(f'street_of_previous_round {street_of_previous_round.value if street_of_previous_round is not None else None}')
 
         # print('!!! 2 game.full_pot = ', game.full_pot)
         if current_street == Street.PREFLOP and street_of_previous_round != Street.PREFLOP:
+            logger.debug('GAME IS STARTED!')
             print('GAME IS STARTED!')
             self.start()
 
@@ -1038,7 +1071,8 @@ class Game(object):
         self.set_folded_players_all()
         self.set_full_pot()
 
-        pyautogui.screenshot(path.join(HERE, 'logs', f'{current_street.value}_{time}.png'))
+
+        pyautogui.screenshot(path.join(path.dirname(HERE), 'logs', f'{current_street.value}_{time}.png'))
 
         # logger.debug(f'current street {current_street.value}')
         # logger.debug(f'previous street {street_of_previous_round.value}')
@@ -1056,24 +1090,57 @@ class Game(object):
             else:
                 self.set_actions_all_players()
 
+    def postprocess_screen(self, AI_action):
+        logger.debug('\n')
+        # button = game.get_button_position()
+        # current_street = self.get_current_street()
+
+        # set action and bet for us e.g player with id = 0
+        logger.debug('set action and bet for us e.g for player with id = 0')
+        self.set_action_current_street(AI_action)
+        self.set_bet_by_action()
+        logger.debug(f'actions_current_street = {self.get_actions_current_street()}')
+        logger.debug(f'bets = {self.get_bets()}')
+
+        # save data of this round for using it in next round
+        self.set_previous_actions_current_street()
+        self.set_previous_actions_previous_street()
+        self.set_previous_bets()
+        # self.set_street_of_previous_round()
+        # print('!!! 5 game.full_pot = ', game.full_pot)
+        self.set_previous_full_pot()
+        # previous_street = current_street
+
+        self.set_folded_players_all_before_current_round()
 
     def get_action_for_AI(self, player_id):
 
         def get_action_from_attributes(player_id):
             action_for_AI = None
-            if self.actions_previous_street and self.actions_previous_street[player_id] is not None and \
-                    self.actions_previous_street[player_id][
-                        'state'] == 'NOT_READ':
-                action_for_AI = self.actions_previous_street[player_id]
-                self.actions_previous_street[player_id]['state'] = 'READ'
-            elif self.actions_current_street and self.actions_current_street[player_id] is not None and self.actions_current_street[player_id][
-                'state'] == 'NOT_READ':
-                action_for_AI = self.actions_current_street[player_id]
-                self.actions_current_street[player_id]['state'] = 'READ'
+            actions_previous_street = self.get_actions_previous_street()
+            if player_id in actions_previous_street:
+                if actions_previous_street[player_id]['state'] == 'NOT_READ':
+                    action_for_AI = actions_previous_street[player_id]
+                    self.actions_previous_street[player_id]['state'] = 'READ'
+                    return action_for_AI
+
+            actions_current_street = self.get_actions_current_street()
+            if player_id in actions_current_street:
+                if actions_current_street[player_id]['state'] == 'NOT_READ':
+                    action_for_AI = actions_current_street[player_id]
+                    self.actions_current_street[player_id]['state'] = 'READ'
+
             return action_for_AI
 
-        logger.debug(f'player_id = {player_id}, self.actions_previous_street = {self.actions_previous_street}')
-        logger.debug(f'player_id = {player_id}, self.actions_current_street = {self.actions_current_street}')
+        folded_players_all = self.get_folded_players_all()
+
+        logger.debug(f'player_id = {player_id}')
+        logger.debug(f'folded_players_all = {folded_players_all}')
+        logger.debug(f'self.get_actions_previous_street = {self.get_actions_previous_street}')
+        logger.debug(f'self.get_actions_current_street = {self.get_actions_current_street}')
+
+        if player_id in folded_players_all:
+            return Action.FOLD
 
         action_for_AI = get_action_from_attributes(player_id)
         if action_for_AI is None:
@@ -1084,15 +1151,11 @@ class Game(object):
 
         logger.debug(f'player_id = {player_id}, action_for_AI = {action_for_AI}')
 
-        return action_for_AI
+        return action_for_AI['action']
 
 
 if __name__ == '__main__':
 
-    def A():
-        logger.debug('pa-pa-pa')
-    A()
-    assert 1==2
     # ss = pygetwindow.getWindowsWithTitle("No Limit Hold'em")[0]
     # print('ss = ', ss)
     # ss.activate()
